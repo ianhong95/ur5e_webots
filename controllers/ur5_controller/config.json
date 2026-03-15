@@ -1,0 +1,10 @@
+{
+    "num_joints": 6,
+    "axes": "zyyyyz",
+    "link_lengths": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0
+    }
+}
