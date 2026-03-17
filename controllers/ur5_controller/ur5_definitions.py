@@ -10,17 +10,18 @@ class IntConstants(IntEnum):
     MAX_ITERATIONS = 50
 
 @dataclass(frozen=True)
-class LimitConstants:
-    IK_ERROR_THRESHOLD: float = 1e-3
+class FloatConstants:
+    IK_ERROR_THRESHOLD: float = 1e-4
+    DAMPING_FACTOR: float = 1.0
 
 @dataclass(frozen=True)
 class PhysicalParams:
-    L0: float = 89.160
+    L0: float = 163.000
     L1: float = 425.000
     L2: float = 392.2500
-    L3: float = 94.650
-    L4: float = 109.150
-    L5: float = 82.300
+    L3: float = 99.700
+    L4: float = 133.000
+    L5: float = 100.000
     NUM_JOINTS = 6
 
 # Alias

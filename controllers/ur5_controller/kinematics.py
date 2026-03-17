@@ -3,7 +3,7 @@ import json
 
 import numpy as np
 
-from ur5_definitions import Joint, IntConstants, LimitConstants, PhysicalParams, PositionConstants
+from ur5_definitions import Joint, IntConstants, FloatConstants, PhysicalParams, PositionConstants
 
 
 class Kinematics():
@@ -154,7 +154,6 @@ class Kinematics():
 
         # Find relative transformation from end-effector to destination
         T_bd = np.linalg.inv(T_sb) @ T_sd
-        print(f'T_bd: {T_bd}')
 
         # Extract the rotation matrix
         R = T_bd[:3, :3]
@@ -166,28 +165,36 @@ class Kinematics():
         # First we compute the twist angle. This is the single rotation angle error.
         theta = acos((np.linalg.trace(R) - 1) / 2)
 
+        # Now we need to handle the two special cases of theta and the general case.
+        
+        # If theta = 0, then we have pure translation (R = I and rotation error is 0).
         if theta < 1e-6:
             twist_error[:3, 3] = p
-        elif abs(theta - pi) < 1e-6:
-            pass
-        else:
-            # Next we extract the rotation matrix, then use it to get the skew-symmetric matrix w.
-            try:
-                w_skew = (1 / (2 * sin(theta))) * (R - R.transpose())
-            except ZeroDivisionError:
-                print(f'trace: {np.linalg.trace(R)}')
-                print(f'Zero division error. Angle: {theta}')
 
-            # Then we get the linear velocity.
-            try:
-                v = ((1/theta) * np.eye(3) - (1/2) * w_skew + ((1/theta) - (1/2) * (1/(tan(theta/2)))) * (w_skew @ w_skew)) @ p
-            except ZeroDivisionError:
-                print(f'trace: {np.linalg.trace(R)}')
-                print(f'Zero division error: Angle: {theta}')
+        # If theta = pi, we have 180 degree rotation. The goal of this case is to find the most
+        # mathematically stable solution. We want to divide by the largest possible number
+        # so the solution doesn't shoot off into infinity.
+        elif abs(theta - pi) < 1e-3:
+            R_diagonals = np.array([R[0, 0], R[1, 1], R[2, 2]])
+            max_diag_idx = np.argmax(R_diagonals)   # returns index of max value
+
+            if max_diag_idx == 0:
+                w_skew = (1 / np.sqrt(2 * (1 + R[0,0]))) * np.array([1 + R[0,0], R[1,0], R[2,0]])
+            elif max_diag_idx == 1:
+                w_skew = (1 / np.sqrt(2 * (1 + R[1,1]))) * np.array([R[0,1], 1 + R[1,1], R[2,1]])
+            else:
+                w_skew = (1 / np.sqrt(2 * (1 + R[2,2]))) * np.array([R[0,2], R[1,2], 1 + R[2,2]])
+   
+        # General case
+        else:
+            w_skew = (1 / (2 * sin(theta))) * (R - R.transpose())
+
+            # linear velocity
+            v = ((1/theta) * np.eye(3) - (1/2) * w_skew + ((1/theta) - (1/2) * (1/(tan(theta/2)))) * (w_skew @ w_skew)) @ p
 
             # Slot w and v into a 4x4 matrix.
             twist_error[:3, :3] = w_skew * theta
-            twist_error[:3, 3] = v * theta
+            twist_error[:3, 3] = v
         
         return twist_error
 
@@ -225,7 +232,7 @@ class Kinematics():
         for i in range(PhysicalParams.NUM_JOINTS - 2, -1, -1):
             inv_exp = np.linalg.inv(exponentials[i + 1])
 
-            T = inv_exp @ T
+            T = T @ inv_exp
 
             omega = self.BODY_SCREWS[i][:3]
             v = self.BODY_SCREWS[i][3:]
@@ -303,7 +310,8 @@ class Kinematics():
             joint_angles: list[float]
         ):
         """
-        Inverse kinematics using Newton-Raphson method.
+        Inverse kinematics using Newton-Raphson method. Running this method once represents
+        a single iteration.
         """
         exp, T_sb = self.body_forward_kinematics(joint_angles)
         current_jacobian = self.body_jacobian(exp)

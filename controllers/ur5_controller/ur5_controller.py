@@ -1,10 +1,13 @@
+import sys, os
+
+os.environ['WEBOTS_ROBOT_NAME'] = 'UR5e'
+
 from controller import Robot, DistanceSensor, Motor, PositionSensor
-import sys
 from math import pi
 import numpy as np
 import time
 
-from ur5_definitions import Joint, IntConstants, LimitConstants
+from ur5_definitions import Joint, IntConstants, FloatConstants
 from kinematics import Kinematics
 
 
@@ -21,9 +24,15 @@ class UR5Controller(Robot):
 
     TEST_TARGETS = {
         'TEST': np.array([
-            [1.000, 0.000, 0.000, 486.910],
-            [0.000, -1.000, 0.000, 109.150],
-            [0.000, 0.000, -1.000, 324.700],
+            [1.000, 0.000, 0.000, 291.950],
+            [0.000, -1.000, 0.000, 133.000],
+            [0.000, 0.000, -1.000, 325.000],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
+        'TEST2': np.array([
+            [1.000, 0.000, 0.000, 480.000],
+            [0.000, -1.000, 0.000, 133.000],
+            [0.000, 0.000, -1.000, 325.000],
             [0.000, 0.000, 0.000, 1.000]
         ])
     }
@@ -41,6 +50,8 @@ class UR5Controller(Robot):
         self.step(self.TIMESTEP)
         self.update_joint_angles()
         self.step(self.TIMESTEP)
+
+        time.sleep(1)
 
 
     def _list_devices(self):
@@ -84,23 +95,19 @@ class UR5Controller(Robot):
         Use inverse kinematics to move to a target TF.
         """
         solution_converged = False
+        iteration = 0
 
         while not solution_converged and self.step(self.TIMESTEP) != -1:
-            # while self.step(self.TIMESTEP) != -1:
+            
             angles_increment, rot_error, trans_error = self.k.inv_kinematics(target_tf, self.joint_angles)
-            print(f'rot_error: {rot_error}')
-            print(f'trans_error: {trans_error}')
-            if rot_error > LimitConstants.IK_ERROR_THRESHOLD or trans_error > LimitConstants.IK_ERROR_THRESHOLD:
+            if rot_error > FloatConstants.IK_ERROR_THRESHOLD or trans_error > FloatConstants.IK_ERROR_THRESHOLD:
                 for angle_increment, (joint, motor) in zip(angles_increment, self.motors.items()):
-                    self.joint_angles[joint.idx] += angle_increment.item()
+                    self.joint_angles[joint.idx] += FloatConstants.DAMPING_FACTOR * angle_increment.item()
                     motor.setPosition(self.joint_angles[joint.idx])
-                print(f'angles increment: {angles_increment}')
-                print(f'current joint angles: {self.joint_angles}')
-
+                iteration += 1
             else:
                 solution_converged = True
                 break
-
 
     def set_joint_angles(self, joint_angle_list: list[float]):
         """
@@ -116,7 +123,7 @@ class UR5Controller(Robot):
 
                 joint_angle_error = abs(current_angle - joint_angle_list[i])
 
-                if joint_angle_error > LimitConstants.IK_ERROR_THRESHOLD:
+                if joint_angle_error > FloatConstants.IK_ERROR_THRESHOLD:
                     print(f'Target not reached. Error: {joint_angle_error}')
                     self.target_reached = False
                     break
@@ -127,17 +134,16 @@ class UR5Controller(Robot):
                 print(f'Target reached!')
                 break
 
+    def move_x(self, x_target: float):
+        pass
+
 def main():
     robot = UR5Controller()
 
-    # while (robot.step(robot.TIMESTEP) != -1):
     robot.set_joint_angles(robot.DEFAULT_POSITIONS['HOME'])
-    # time.sleep(2)
-    # robot.set_joint_angles(robot.DEFAULT_POSITIONS['HORIZONTAL'])
-    # robot.update_joint_angles()
-    if 'nan' not in robot.joint_angles:
-        f = robot.k.body_forward_kinematics(robot.joint_angles)
     robot.go_to_position(robot.TEST_TARGETS['TEST'])
+    time.sleep(1)
+    robot.go_to_position(robot.TEST_TARGETS['TEST2'])
 
 if __name__ == '__main__':
     main()
