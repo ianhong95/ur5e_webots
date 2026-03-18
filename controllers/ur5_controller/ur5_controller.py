@@ -7,7 +7,7 @@ from math import pi
 import numpy as np
 import time
 
-from ur5_definitions import Joint, IntConstants, FloatConstants
+from ur5_definitions import Joint, IntConstants, FloatConstants, PhysicalParams
 from kinematics import Kinematics
 
 
@@ -24,15 +24,15 @@ class UR5Controller(Robot):
 
     TEST_TARGETS = {
         'TEST': np.array([
-            [1.000, 0.000, 0.000, 291.950],
+            [1.000, 0.000, 0.000, 400.000],
             [0.000, -1.000, 0.000, 133.000],
-            [0.000, 0.000, -1.000, 325.000],
+            [0.000, 0.000, -1.000, 250.000],
             [0.000, 0.000, 0.000, 1.000]
         ]),
         'TEST2': np.array([
-            [1.000, 0.000, 0.000, 480.000],
+            [1.000, 0.000, 0.000, 100.000],
             [0.000, -1.000, 0.000, 133.000],
-            [0.000, 0.000, -1.000, 325.000],
+            [0.000, 0.000, -1.000, 250.000],
             [0.000, 0.000, 0.000, 1.000]
         ])
     }
@@ -96,18 +96,44 @@ class UR5Controller(Robot):
         """
         solution_converged = False
         iteration = 0
+        current_joint_angles = self.joint_angles.copy()
+        target_joint_angles = [0.0] * PhysicalParams.NUM_JOINTS
 
-        while not solution_converged and self.step(self.TIMESTEP) != -1:
-            
-            angles_increment, rot_error, trans_error = self.k.inv_kinematics(target_tf, self.joint_angles)
+        while not solution_converged:
+            angles_increment, rot_error, trans_error = self.k.inv_kinematics(target_tf, current_joint_angles)
             if rot_error > FloatConstants.IK_ERROR_THRESHOLD or trans_error > FloatConstants.IK_ERROR_THRESHOLD:
                 for angle_increment, (joint, motor) in zip(angles_increment, self.motors.items()):
-                    self.joint_angles[joint.idx] += FloatConstants.DAMPING_FACTOR * angle_increment.item()
-                    motor.setPosition(self.joint_angles[joint.idx])
+                    # self.joint_angles[joint.idx] += FloatConstants.DAMPING_FACTOR * angle_increment.item()
+                    current_joint_angles[joint.idx] += FloatConstants.DAMPING_FACTOR * angle_increment.item()
                 iteration += 1
             else:
                 solution_converged = True
+                target_joint_angles = current_joint_angles
                 break
+        
+        steps = []
+
+        for joint, motor in self.motors.items():
+            angle_diff = target_joint_angles[joint.idx] - self.joint_angles[joint.idx]
+            max_angle_step = FloatConstants.MAX_VELOCITY * self.TIMESTEP / 1000
+            step = np.clip(angle_diff, -max_angle_step, max_angle_step)
+            steps.append(step)
+
+        while self.step(self.TIMESTEP) != -1:
+            self.target_reached = True
+
+            for joint, motor in self.motors.items():
+                angle_error = abs(target_joint_angles[joint.idx] - self.joint_angles[joint.idx])
+
+                if angle_error > FloatConstants.IK_ERROR_THRESHOLD:
+                    self.joint_angles[joint.idx] += steps[joint.idx]
+                    motor.setPosition(self.joint_angles[joint.idx])
+                    print(f'Target not reached. Error: {angle_error}')
+                    self.target_reached = False
+            
+            if self.target_reached:
+                print(f'Target reached!')
+                return
 
     def set_joint_angles(self, joint_angle_list: list[float]):
         """
