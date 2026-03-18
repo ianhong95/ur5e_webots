@@ -51,7 +51,6 @@ class Kinematics():
         for joint in Joint:
             body_screws.append(self.adjoint_map(M_inv[:3, :3], M_inv[:3, 3]) @ joint.screw_axis)
 
-        print(f'body_screws: {body_screws}')
         return body_screws
 
     def screw_vec_to_se3(self, screw_axis: np.ndarray):
@@ -79,9 +78,6 @@ class Kinematics():
             [wz, 0, -wx],
             [-wy, wx, 0]
         ])
-    
-    def matrix_logarithm(self, tf_matrix: np.ndarray):
-        pass
 
     def compute_rodrigues_rot(self, omega_vector: np.ndarray, theta: float):
         """
@@ -197,12 +193,12 @@ class Kinematics():
             twist_error[:3, 3] = v
         
         return twist_error
-
-    def matrix_log(self, R: np.ndarray):
-        pass
     
     def space_jacobian(self, curr_joint_angles: list[float]):
-        jacobian = np.eye(PhysicalParams.NUM_JOINTS)
+        """
+        TODO: Check the math here.
+        """
+        jacobian = np.zeros((6, PhysicalParams.NUM_JOINTS))
 
         jacobian[:,0] = Joint.SHOULDER_PAN.screw_axis
 
@@ -242,9 +238,6 @@ class Kinematics():
             jacobian[:, i] = np.transpose(transformed_screw)
 
         return jacobian
-
-    def pose_to_tf(self, rot: np.ndarray = np.eye(3), pos: np.ndarray = np.array([0, 0, 0])):
-        pass
     
     # ==========
     # KINEMATICS
@@ -270,8 +263,6 @@ class Kinematics():
         
         # Multiply final transformation matrix and the zero position matrix
         current_position = transform @ PositionConstants.ZERO_TF
-
-        print(f'Current position: {current_position}')
         
         return current_position
     
@@ -301,7 +292,6 @@ class Kinematics():
         # Multiply final transformation matrix and the zero position matrix
         current_position = PositionConstants.ZERO_TF @ transform
 
-        print(f'Body FK position: {current_position}')
         return exponentials, current_position
     
     def inv_kinematics(
@@ -325,6 +315,80 @@ class Kinematics():
         angles_increment = pseudo_inv_jacobian @ twist_error_6D
 
         return angles_increment, rotation_error, translation_error
+    
+    # =========================
+    # GEOMETRIC TRANSFORMATIONS
+    # =========================
+
+    def rel_trans_xyz(self, target_coords: tuple[float], current_tf: np.ndarray):
+        """
+        Linear translation in space, relative to the body frame.
+        """
+
+        trans_tf = np.array([
+            [1, 0, 0, target_coords[0]],
+            [0, 1, 0, target_coords[1]],
+            [0, 0, 1, target_coords[2]],
+            [0, 0, 0, 1]
+        ])
+
+        return trans_tf @ current_tf
+    
+    def global_trans_xyz(self, target_coords: tuple[float], current_tf: np.ndarray):
+        """
+        Linear translation in space, relative to the global frame.
+        """
+
+        trans_tf = np.array([
+            [1, 0, 0, target_coords[0]],
+            [0, 1, 0, target_coords[1]],
+            [0, 0, 1, target_coords[2]],
+            [0, 0, 0, 1]
+        ])
+
+        return current_tf @ trans_tf
+
+    def rot_x(self, theta: float, current_tf: np.ndarray):
+        """
+        Rotation about the x-axis of the body frame.
+        """
+
+        Rx = np.array([
+            [1, 0, 0, 0],
+            [0, cos(theta), -sin(theta), 0],
+            [0, sin(theta), cos(theta), 0],
+            [0, 0, 0, 1]
+        ])
+
+        return current_tf @ Rx
+    
+    def rot_y(self, theta: float, current_tf: np.ndarray):
+        """
+        Rotation about the y-axis of the body frame.
+        """
+        
+        Ry = np.array([
+            [cos(theta), 0, sin(theta), 0],
+            [0, 1, 0, 0],
+            [-sin(theta), 0, cos(theta), 0],
+            [0, 0, 0, 1]
+        ])
+
+        return current_tf @ Ry
+
+    def rot_z(self, theta: float, current_tf: np.ndarray):
+        """
+        Rotation about the z-axis of the body frame.
+        """
+
+        Rz = np.array([
+            [cos(theta), -sin(theta), 0, 0],
+            [sin(theta), cos(theta), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+
+        return current_tf @ Rz
 
 def main():
     k = Kinematics()
