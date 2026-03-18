@@ -6,13 +6,14 @@ import numpy as np
 
 
 class IntConstants(IntEnum):
-    TIMESTEP = 64
+    TIMESTEP = 32   # 32ms per simulation step
     MAX_ITERATIONS = 50
 
 @dataclass(frozen=True)
 class FloatConstants:
-    IK_ERROR_THRESHOLD: float = 1e-4
+    IK_ERROR_THRESHOLD: float = 5e-2
     DAMPING_FACTOR: float = 1.0
+    MAX_VELOCITY: float = 1.0   # rad/s * timestep
 
 @dataclass(frozen=True)
 class PhysicalParams:
