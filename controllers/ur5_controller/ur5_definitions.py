@@ -11,9 +11,11 @@ class IntConstants(IntEnum):
 
 @dataclass(frozen=True)
 class FloatConstants:
-    IK_ERROR_THRESHOLD: float = 5e-2
+    IK_ERROR_THRESHOLD: float = 1e-4
+    THETA_THRESHOLD: float = 1e-3
     DAMPING_FACTOR: float = 1.0
-    MAX_VELOCITY: float = 1.0   # rad/s * timestep
+    MAX_ANGULAR_VELOCITY: float = 1.0   # rad/s
+    MAX_LINEAR_VELOCITY: float = 1.0   # m/s
 
 @dataclass(frozen=True)
 class PhysicalParams:
