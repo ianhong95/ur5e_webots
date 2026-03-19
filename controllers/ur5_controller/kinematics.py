@@ -159,7 +159,11 @@ class Kinematics():
 
         # Now we compute the error twist using the matrix logarithm.
         # First we compute the twist angle. This is the single rotation angle error.
-        theta = acos((np.linalg.trace(R) - 1) / 2)
+        
+        # This is very unstable due to noise that could make it 1.000001. Clip it.
+        acos_arg = np.clip((np.linalg.trace(R) - 1) / 2, -1.0, 1.0)
+        
+        theta = acos(acos_arg)
 
         # Now we need to handle the two special cases of theta and the general case.
         
@@ -185,8 +189,12 @@ class Kinematics():
         else:
             w_skew = (1 / (2 * sin(theta))) * (R - R.transpose())
 
-            # linear velocity
-            v = ((1/theta) * np.eye(3) - (1/2) * w_skew + ((1/theta) - (1/2) * (1/(tan(theta/2)))) * (w_skew @ w_skew)) @ p
+            # linear velocity. Handle case where theta is small but non-zero
+            if theta < FloatConstants.THETA_THRESHOLD:
+                v = p / np.linalg.norm(p)
+            else:
+                alpha = (1/theta) - (1/2) * (1/(tan(theta/2)))
+                v = ((1/theta) * np.eye(3) - (1/2) * w_skew + (alpha * (w_skew @ w_skew))) @ p
 
             # Slot w and v into a 4x4 matrix.
             twist_error[:3, :3] = w_skew * theta
