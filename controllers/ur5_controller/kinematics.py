@@ -163,7 +163,7 @@ class Kinematics():
         # This is very unstable due to noise that could make it 1.000001. Clip it.
         acos_arg = np.clip((np.linalg.trace(R) - 1) / 2, -1.0, 1.0)
         
-        theta = acos(acos_arg)
+        theta = np.clip(acos(acos_arg), -pi, pi)
 
         # Now we need to handle the two special cases of theta and the general case.
         
@@ -174,7 +174,7 @@ class Kinematics():
         # If theta = pi, we have 180 degree rotation. The goal of this case is to find the most
         # mathematically stable solution. We want to divide by the largest possible number
         # so the solution doesn't shoot off into infinity.
-        elif abs(theta - pi) < 1e-3:
+        elif abs(theta - pi) < FloatConstants.THETA_THRESHOLD:
             R_diagonals = np.array([R[0, 0], R[1, 1], R[2, 2]])
             max_diag_idx = np.argmax(R_diagonals)   # returns index of max value
 
@@ -191,9 +191,9 @@ class Kinematics():
 
             # linear velocity. Handle case where theta is small but non-zero
             if theta < FloatConstants.THETA_THRESHOLD:
-                v = p / np.linalg.norm(p)
+                v = p
             else:
-                alpha = (1/theta) - (1/2) * (1/(tan(theta/2)))
+                alpha = (1.0 - (theta/2.0) / tan(theta/2.0)) / (theta**2)
                 v = ((1/theta) * np.eye(3) - (1/2) * w_skew + (alpha * (w_skew @ w_skew))) @ p
 
             # Slot w and v into a 4x4 matrix.
