@@ -7,21 +7,26 @@ import numpy as np
 
 class IntConstants(IntEnum):
     TIMESTEP = 32   # 32ms per simulation step
-    MAX_ITERATIONS = 50
+    MAX_ITERATIONS = 100
 
 @dataclass(frozen=True)
 class FloatConstants:
     IK_ERROR_THRESHOLD: float = 1e-4
     THETA_THRESHOLD: float = 1e-3
     DAMPING_FACTOR: float = 1.0
-    MAX_ANGULAR_VELOCITY: float = 1.0   # rad/s
-    MAX_LINEAR_VELOCITY: float = 1.0   # m/s
+
+@dataclass(frozen=True)
+class MotionConstants:
+    DEFAULT_LINEAR_VELOCITY: float = 200.0    # mm/s
+    DEFAULT_ANGULAR_VELOCITY: float = 1.0   # rad/s
+    MAX_ANGULAR_VELOCITY: float = 2.0   # rad/s
+    MAX_LINEAR_VELOCITY: float = 1000.0   # mm/s
 
 @dataclass(frozen=True)
 class PhysicalParams:
     L0: float = 163.000
     L1: float = 425.000
-    L2: float = 392.2500
+    L2: float = 392.250
     L3: float = 99.700
     L4: float = 133.000
     L5: float = 100.000
