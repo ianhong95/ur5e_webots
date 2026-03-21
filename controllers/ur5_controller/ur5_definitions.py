@@ -24,12 +24,12 @@ class MotionConstants:
 
 @dataclass(frozen=True)
 class PhysicalParams:
-    L0: float = 163.000
+    L0: float = 162.500
     L1: float = 425.000
-    L2: float = 392.250
+    L2: float = 392.200
     L3: float = 99.700
     L4: float = 133.000
-    L5: float = 100.000
+    L5: float = 99.600
     NUM_JOINTS = 6
 
 # Alias
@@ -39,7 +39,7 @@ class PositionConstants():
     ZERO_TF: np.ndarray = np.array([
         [0, -1, 0, P.L1 + P.L2],
         [0, 0, 1, P.L4 + P.L5],
-        [-1, 0, 0, -P.L3],
+        [-1, 0, 0, P.L0 -P.L3],
         [0, 0, 0, 1]
     ])
 
@@ -64,7 +64,7 @@ class Joint(Enum):
         'shoulder_pan_joint',
         'shoulder_pan_joint_sensor',
         np.array([0, 0, 1]),
-        np.array([0, 0, 0])
+        np.array([0, 0, P.L0])
     )
     
     SHOULDER_LIFT = JointInfo(
@@ -72,7 +72,7 @@ class Joint(Enum):
         'shoulder_lift_joint',
         'shoulder_lift_joint_sensor',
         np.array([0, 1, 0]),
-        np.array([0, 0, 0])
+        np.array([0, 0, P.L0])
     )
     
     ELBOW = JointInfo(
@@ -80,7 +80,7 @@ class Joint(Enum):
         'elbow_joint',
         'elbow_joint_sensor',
         np.array([0, 1, 0]),
-        np.array([P.L1, 0, 0])
+        np.array([P.L1, 0, P.L0])
     )
     
     WRIST_1 = JointInfo(
@@ -88,7 +88,7 @@ class Joint(Enum):
         'wrist_1_joint',
         'wrist_1_joint_sensor',
         np.array([0, 1, 0]),
-        np.array([P.L1 + P.L2, 0, 0])    
+        np.array([P.L1 + P.L2, 0, P.L0])    
     )
     
     WRIST_2 = JointInfo(
@@ -96,7 +96,7 @@ class Joint(Enum):
         'wrist_2_joint',
         'wrist_2_joint_sensor',
         np.array([0, 0, -1]),
-        np.array([P.L1 + P.L2, P.L4, 0])      
+        np.array([P.L1 + P.L2, P.L4, P.L0])      
     )
     
     WRIST_3 = JointInfo(
@@ -104,7 +104,7 @@ class Joint(Enum):
         'wrist_3_joint',
         'wrist_3_joint_sensor',
         np.array([0, 1, 0]),
-        np.array([P.L1 + P.L2 + P.L3, 0, -(P.L4 + P.L5)])    
+        np.array([P.L1 + P.L2, 0, P.L0-P.L3])    
     )
 
     @property
