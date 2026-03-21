@@ -29,7 +29,7 @@ class PhysicalParams:
     L2: float = 392.200
     L3: float = 99.700
     L4: float = 133.000
-    L5: float = 99.600
+    L5: float = 99.600  # I don't know this exact value
     NUM_JOINTS = 6
 
 # Alias
