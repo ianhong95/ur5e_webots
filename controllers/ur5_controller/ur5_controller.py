@@ -24,15 +24,15 @@ class UR5Controller(Robot):
 
     TEST_TARGETS = {
         'TEST': np.array([
-            [1.000, 0.000, 0.000, 200.000],
+            [1.000, 0.000, 0.000, 491.918],
             [0.000, -1.000, 0.000, 133.000],
-            [0.000, 0.000, -1.000, 200.000],
+            [0.000, 0.000, -1.000, 325.027],
             [0.000, 0.000, 0.000, 1.000]
         ]),
         'TEST2': np.array([
-            [1.000, 0.000, 0.000, 100.000],
+            [1.000, 0.000, 0.000, 491.918],
             [0.000, -1.000, 0.000, 133.000],
-            [0.000, 0.000, -1.000, 250.000],
+            [0.000, 0.000, -1.000, 225.027],
             [0.000, 0.000, 0.000, 1.000]
         ])
     }
@@ -113,51 +113,22 @@ class UR5Controller(Robot):
                     target_joint_angles[idx] += FloatConstants.DAMPING_FACTOR * angle_increment.item()
             else:
                 break
-        
-        # Calculate linear distance between target and current pose
-        linear_dist = abs(np.linalg.norm(target_tf[:3, 3] - initial_pose[:3, 3]))
 
-        # Calculate number of timesteps required to move at the provided speed.
-        mm_per_step = linear_speed * IntConstants.TIMESTEP / 1000
-
-        num_steps_linear = np.clip(int(linear_dist / mm_per_step), 1, 200)
-
-        # Extract rotation matrices
-        R_initial = initial_pose[:3, :3]
-        R_target = target_tf[:3, :3]
-        
-        # Calculate relative rotation angle
-        R_rel = R_initial.T @ R_target
-        acos_arg = np.clip((np.trace(R_rel) - 1.0) / 2.0, -1.0, 1.0)
-        angular_dist = abs(np.arccos(acos_arg)) # Radian difference
-        
-        rad_per_step = angular_speed * IntConstants.TIMESTEP / 1000.0
-        num_steps_angular = int(angular_dist / rad_per_step) if rad_per_step > 0 else 0
-
-        # Put a cap on the number of steps
-        num_steps = np.clip(max(num_steps_linear, num_steps_angular), 1, 200)
-        
-        # Calculate the angle steps required by each joint at each timestep
-        angles_per_step = []
         for joint, motor in self.motors.items():
-            angle_diff = target_joint_angles[joint.idx] - self.joint_angles[joint.idx]
-            angles_per_step.append(angle_diff / num_steps)    # rad/step
+            motor.setPosition(target_joint_angles[joint.idx])
 
         while self.step(self.TIMESTEP) != -1:
             self.target_reached = True
-
-            for joint, motor in self.motors.items():
-                angle_error = abs(target_joint_angles[joint.idx] - self.joint_angles[joint.idx])
-
-                if angle_error > FloatConstants.IK_ERROR_THRESHOLD:
-                    self.joint_angles[joint.idx] += angles_per_step[joint.idx]
-                    motor.setPosition(self.joint_angles[joint.idx])
-                    print(f'Target not reached. Error: {angle_error}')
+            self.update_joint_angles()
+            for current, target in zip(self.joint_angles, target_joint_angles):
+                error = target - current
+                if (abs(error)) > FloatConstants.THETA_THRESHOLD:
+                    print(f'Target not reached yet. Error: {error}')
                     self.target_reached = False
-            
+
             if self.target_reached:
-                print(f'Target reached!')
                 return
+            
 
     def set_joint_angles(self, joint_angle_list: list[float]):
         """
@@ -196,8 +167,9 @@ class UR5Controller(Robot):
     
     def move_y(self, y_target: float):
         target_coords = (0, y_target, 0)
+
         self.update_joint_angles()
-        self.step(self.TIMESTEP)
+
         _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
 
         target_tf = self.k.rel_trans_xyz(target_coords, current_tf)
@@ -249,14 +221,22 @@ def main():
 
     robot.set_joint_angles(robot.DEFAULT_POSITIONS['HOME'])
     robot.go_to_position(robot.TEST_TARGETS['TEST'])
-    robot.update_joint_angles()
-    robot.k.body_forward_kinematics(robot.joint_angles)
-    time.sleep(1)
+    _, fk = robot.k.body_forward_kinematics(robot.joint_angles)
+    print(f'fk: {fk}')
+    print(f'joint_angles: {robot.joint_angles}')    
+    
     while True:
+        robot.move_x(-150)
         robot.move_y(200)
-        robot.move_y(-200)
+        robot.move_x(150)
+        robot.move_y(-400)
+        robot.move_x(-150)
+        robot.move_z(150)
+        robot.move_y(200)
+        robot.move_z(-150)
         robot.rot_y(pi/4)
         robot.rot_y(-pi/4)
+        robot.move_x(150)
 
 if __name__ == '__main__':
     main()
