@@ -340,7 +340,10 @@ class Kinematics():
             [0, 0, 0, 1]
         ])
 
-        return trans_tf @ current_tf
+        print(f'current_tf: {current_tf}')
+        print(f'target_tf: {current_tf @ trans_tf}')
+
+        return current_tf @ trans_tf
     
     def global_trans_xyz(self, target_coords: tuple[float], current_tf: np.ndarray):
         """
@@ -354,7 +357,7 @@ class Kinematics():
             [0, 0, 0, 1]
         ])
 
-        return current_tf @ trans_tf
+        return trans_tf @ current_tf
 
     def rot_x(self, theta: float, current_tf: np.ndarray):
         """
