@@ -26,21 +26,45 @@ First we need to define the screw axis for each joint on the robot arm. This is 
 
 1. Identify the axis of rotation of each joint as a unit vector relative to the space frame. All we care about is the direction of positive rotation; we don't care about the direction of the $x$ and $y$ axes.
 
-    $\omega_{0} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$,
-    $\omega_{1} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}$, 
-    $\omega_{2} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}$, 
-    $\omega_{3} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}$, 
-    $\omega_{4} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}$, 
-    $\omega_{5} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$
+    $$
+    \omega_{0} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+    $$,
+    $$
+    \omega_{1} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
+    $$, 
+    $$
+    \omega_{2} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
+    $$, 
+    $$
+    \omega_{3} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
+    $$, 
+    $$
+    \omega_{4} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
+    $$, 
+    $$
+    \omega_{5} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+    $$
 
 2. Identify a point on each axis. The easiest way is to just use the origin of each joint relative to the global origin. These points are denoted as a vector from the origin and they represent the lever arm.
 
-    $q_{0} = \begin{bmatrix} 0 \\ 0 \\ L_{0} \end{bmatrix}$,
-    $q_{1} = \begin{bmatrix} 0 \\ 0 \\ L_{0} \end{bmatrix}$, 
-    $q_{2} = \begin{bmatrix} L_{1} \\ 0 \\ L_{0} \end{bmatrix}$, 
-    $q_{3} = \begin{bmatrix} L_{1} + L_{2} \\ 0 \\ L_{0} \end{bmatrix}$, 
-    $q_{4} = \begin{bmatrix} L_{1} + L_{2} + L_{3} \\ 0 \\ L_{0} \end{bmatrix}$, 
-    $q_{5} = \begin{bmatrix} L_{1} + L_{2} + L_{3} + L_{4} \\ 0 \\ L_{0} - L_{3} \end{bmatrix}$
+    $$
+    q_{0} = \begin{bmatrix} 0 \\ 0 \\ L_{0} \end{bmatrix}
+    $$,
+    $$
+    q_{1} = \begin{bmatrix} 0 \\ 0 \\ L_{0} \end{bmatrix}
+    $$, 
+    $$
+    q_{2} = \begin{bmatrix} L_{1} \\ 0 \\ L_{0} \end{bmatrix}
+    $$, 
+    $$
+    q_{3} = \begin{bmatrix} L_{1} + L_{2} \\ 0 \\ L_{0} \end{bmatrix}
+    $$, 
+    $$
+    q_{4} = \begin{bmatrix} L_{1} + L_{2} + L_{3} \\ 0 \\ L_{0} \end{bmatrix}
+    $$, 
+    $$
+    q_{5} = \begin{bmatrix} L_{1} + L_{2} + L_{3} + L_{4} \\ 0 \\ L_{0} - L_{3} \end{bmatrix}
+    $$
 
 3. Compute the linear velocity of each joint. You can think of this as the speed of the origin that each joint "sees".
 
@@ -48,7 +72,9 @@ First we need to define the screw axis for each joint on the robot arm. This is 
 
 4. Finally, we build the screw axes using the rotation axes and linear velocities.
 
-    $S_{i} = \begin{bmatrix} \omega_{i} \\ v_{i} \end{bmatrix}$
+    $$
+    S_{i} = \begin{bmatrix} \omega_{i} \\ v_{i} \end{bmatrix}
+    $$
 
 
 ## Body Screws
@@ -56,16 +82,18 @@ The screw axes above are in the space frame. When we do end-effector manipulatio
 
 The Adjoint map matrix is:
 
-$ [Ad_{M}] = 
+$$[Ad_{M}] = 
 \begin{bmatrix}
 R & 0 \\
 [p]R & R
 \end{bmatrix}
-$
+$$
 
 The body screws are computed using the Adjoint transform:
 
-$B_{i} = \begin{bmatrix} Ad_{M^{-1}} \end{bmatrix}S_{i}$
+$$
+B_{i} = \begin{bmatrix} Ad_{M^{-1}} \end{bmatrix}S_{i}
+$$
 
 ## Forward Kinematics (Body Frame)
 The goal is to obtain a transformation matrix that describes the transformation from the robot's base frame to the end-effector frame. In this case, the transformation will be expressed in the body frame.
@@ -98,7 +126,9 @@ This formula shows that we can use the inverse of the Jacobian to solve for a se
 
 2. We will need the body screw vectors that were determined in a previous step.
 
-    $B_{i} = \begin{bmatrix} Ad_{M^{-1}} \end{bmatrix}S_{i}$
+    $$
+    B_{i} = \begin{bmatrix} Ad_{M^{-1}} \end{bmatrix}S_{i}
+    $$
 
 3. Now this part is tricky, so pay attention to the indices. The goal here is to compute each column in the matrix separately. We need to loop backwards from joint $n$ down to 1 and build the Jacobian matrix one column at a time, where each column is the screw axis of one joint expressed in the end-effector's frame. 
 
