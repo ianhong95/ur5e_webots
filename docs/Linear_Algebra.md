@@ -174,7 +174,7 @@ where $[p]$ is the skew-symmetric representation of the translation component of
 The adjoint map or adjoint transformation is
 
 $$
-V' = [Ad_{T}](V)
+V' = [Ad_{T}]V
 $$
 
 where $V$ is a 6D twist vector given by
