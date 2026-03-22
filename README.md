@@ -3,7 +3,7 @@
 ## Summary
 In my [previous project](https://github.com/ianhong95/5DOFRobotArmV2) where I built my own 5-DOF robot arm, I learned that the Denavit-Hartenberg method for computing kinematics was quite inefficient as it involved a convoluted frame assignment procedure and many successive transformation matrix multiplications. I also crashed the robot quite a few times due to both major and minor math errors.
 
-The purpose of this project is to deep dive into Screw Theory and numerical solvers as a more computationally efficient and universal method to control a robot arm. The UR5e in a simulation environment enables me to experiment with kinematics formulas without going broke and worrying about breaking a physical robot.
+The purpose of this project is to deep dive into Screw Theory and numerical solvers as a more robust, computationally efficient, and universal method to control a robot arm. This method handles singularities more elegantly than the D-H method. The UR5e in a simulation environment enables me to experiment with kinematics formulas without going broke and worrying about breaking a physical robot.
 
 ![Robot Arm Demo](assets/robot_arm_demo.webp)
 
