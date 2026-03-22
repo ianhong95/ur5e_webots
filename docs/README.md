@@ -10,7 +10,8 @@ The forward and inverse kinematics in this project are implemented using Screw T
 ![UR5e End Effector Frame](/assets/UR5e_End-Effector_Frame.png)
 
 Based on the diagrams above, the transformation matrix to get from the origin (at the base of the robot) to the end-effector in the "zero" position is:
-$$ M = 
+
+$$M = 
 \begin{bmatrix}
 0 & -1 & 0 & L_{1} + L_{2} \\
 0 & 0 & 1 & L_{4} + L_5 \\
@@ -28,19 +29,24 @@ First we need to define the screw axis for each joint on the robot arm. This is 
 
     $$
     \omega_{0} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
-    $$,
+    $$
+
     $$
     \omega_{1} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
-    $$, 
+    $$
+
     $$
     \omega_{2} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
-    $$, 
+    $$
+
     $$
     \omega_{3} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
-    $$, 
+    $$
+
     $$
     \omega_{4} = \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}
-    $$, 
+    $$
+
     $$
     \omega_{5} = \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
     $$
@@ -49,19 +55,24 @@ First we need to define the screw axis for each joint on the robot arm. This is 
 
     $$
     q_{0} = \begin{bmatrix} 0 \\ 0 \\ L_{0} \end{bmatrix}
-    $$,
+    $$
+
     $$
     q_{1} = \begin{bmatrix} 0 \\ 0 \\ L_{0} \end{bmatrix}
-    $$, 
+    $$
+
     $$
     q_{2} = \begin{bmatrix} L_{1} \\ 0 \\ L_{0} \end{bmatrix}
-    $$, 
+    $$
+
     $$
     q_{3} = \begin{bmatrix} L_{1} + L_{2} \\ 0 \\ L_{0} \end{bmatrix}
-    $$, 
+    $$
+
     $$
     q_{4} = \begin{bmatrix} L_{1} + L_{2} + L_{3} \\ 0 \\ L_{0} \end{bmatrix}
-    $$, 
+    $$
+
     $$
     q_{5} = \begin{bmatrix} L_{1} + L_{2} + L_{3} + L_{4} \\ 0 \\ L_{0} - L_{3} \end{bmatrix}
     $$
@@ -82,7 +93,8 @@ The screw axes above are in the space frame. When we do end-effector manipulatio
 
 The Adjoint map matrix is:
 
-$$[Ad_{M}] = 
+$$
+[Ad_{M}] = 
 \begin{bmatrix}
 R & 0 \\
 [p]R & R
