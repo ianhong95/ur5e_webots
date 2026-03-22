@@ -227,7 +227,7 @@ $$
 
 The algorithm for computing the matrix logarithm can be found in the [Linear Algebra](/docs/Linear_Algebra.md) document.
 
-The norm of first 3 components of $[V_{b}]$ corresponds to the rotational error ($\|\omega_{b}\|$), and the norm of last 3 components ($\|v_{b}\|$) corresponds to the translational error.
+The norm of first 3 components of $[V_{b}]$ corresponds to the rotational error ($\\|\omega_{b}\\|$), and the norm of last 3 components ($\\|v_{b}\\|$) corresponds to the translational error.
 
 4. Calculate the joint angle increments by solving
 
