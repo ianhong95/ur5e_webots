@@ -42,7 +42,7 @@ $$
 G(\theta) = I\theta + (1 - cos(\theta))[\hat{\omega}] + (\theta - sin(\theta))[\hat{\omega}]^{2}
 $$
 
-For pure translation ($\omega = 0$), $||v|| = 1$. Then the matrix exponential is simply
+For pure translation ($\omega = 0$), $\|v\| = 1$. Then the matrix exponential is simply
 
 $$e^{[S]\theta}=
 \begin{bmatrix}
@@ -141,8 +141,8 @@ Again, we need to handle special cases.
 If $R = I$, then:
 
 * $\omega = 0$
-* $v = p / ||p||$
-* $\theta = ||p||$
+* $v = p / \|p\|$
+* $\theta = \|p\|$
 
 #### Case 2: General Case
 We use the matrix logarithm algorithm for rotations to determine $\hat{\omega}$.
