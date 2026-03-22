@@ -29,12 +29,42 @@ First we need to define the screw axis for each joint on the robot arm. This is 
 
 $$
 \begin{aligned}
-\omega_0 &= \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}, &
-\omega_1 &= \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}, \\
-\omega_2 &= \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}, &
-\omega_3 &= \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}, \\
-\omega_4 &= \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}, &
-\omega_5 &= \begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}
+\omega_{0} &= 
+\begin{bmatrix}
+0 \\
+0 \\
+1
+\end{bmatrix}, &
+\omega_{1} &=
+\begin{bmatrix}
+0 \\
+1 \\
+0
+\end{bmatrix}, \\
+\omega_{2} &= 
+\begin{bmatrix}
+0 \\
+1 \\
+0
+\end{bmatrix}, &
+\omega_{3} &=
+\begin{bmatrix}
+0 \\
+1 \\
+0
+\end{bmatrix}, \\
+\omega_{4} &=
+\begin{bmatrix}
+0 \\
+1\\
+0
+\end{bmatrix}, &
+\omega_{5} &=
+\begin{bmatrix}
+0 \\
+0 \\
+1
+\end{bmatrix}
 \end{aligned}
 $$
 
@@ -42,12 +72,42 @@ $$
 
 $$
 \begin{aligned}
-q_0 &= \begin{bmatrix} 0 \\ 0 \\ L_0 \end{bmatrix}, &
-q_1 &= \begin{bmatrix} 0 \\ 0 \\ L_0 \end{bmatrix}, \\
-q_2 &= \begin{bmatrix} L_1 \\ 0 \\ L_0 \end{bmatrix}, &
-q_3 &= \begin{bmatrix} L_1 + L_2 \\ 0 \\ L_0 \end{bmatrix}, \\
-q_4 &= \begin{bmatrix} L_1 + L_2 + L_3 \\ 0 \\ L_0 \end{bmatrix}, &
-q_5 &= \begin{bmatrix} L_1 + L_2 + L_3 + L_4 \\ 0 \\ L_0 - L_3 \end{bmatrix}
+q_{0} &=
+\begin{bmatrix} 
+0 \\ 
+0 \\ 
+L_0 
+\end{bmatrix}, &
+q_{1} &=
+\begin{bmatrix}
+0 \\
+0 \\
+L_0
+\end{bmatrix}, \\
+q_{2} &= 
+\begin{bmatrix} 
+L_1 \\ 
+0 \\ 
+L_0 
+\end{bmatrix}, &
+q_{3} &= 
+\begin{bmatrix} 
+L_1 + L_2 \\ 
+0 \\ 
+L_0 
+\end{bmatrix}, \\
+q_{4} &= 
+\begin{bmatrix} 
+L_1 + L_2 + L_3 \\ 
+0 \\ 
+L_0 
+\end{bmatrix}, &
+q_{5} &= 
+\begin{bmatrix} 
+L_1 + L_2 + L_3 + L_4 \\ 
+0 \\ 
+L_0 - L_3 
+\end{bmatrix}
 \end{aligned}
 $$
 
@@ -58,7 +118,11 @@ $$
 4. Finally, we build the screw axes using the rotation axes and linear velocities.
 
 $$
-S_{i} = \begin{bmatrix} \omega_{i} \\ v_{i} \end{bmatrix}
+S_{i} =
+\begin{bmatrix}
+\omega_{i} \\
+v_{i}
+\end{bmatrix}
 $$
 
 ## Body Screws
@@ -150,21 +214,20 @@ Step 0 is feeding in the transformation matrix of the desired end-effector pose,
 
     where $[V_{b}]$ is the 6D twist error vector:
     
-    $$
-    [V_{b}] = 
-    \begin{bmatrix}
-    \omega_{bx} \\
-    \omega_{by} \\
-    \omega_{bz} \\
-    v_{bx} \\
-    v_{by} \\
-    v_{bz}
-    \end{bmatrix}
-    $$
+$$[V_{b}] = 
+\begin{bmatrix}
+\omega_{bx} \\
+\omega_{by} \\
+\omega_{bz} \\
+v_{bx} \\
+v_{by} \\
+v_{bz}
+\end{bmatrix}
+$$
 
-    The algorithm for computing the matrix logarithm can be found in the [Linear Algebra](/docs/Linear_Algebra.md) document.
+The algorithm for computing the matrix logarithm can be found in the [Linear Algebra](/docs/Linear_Algebra.md) document.
 
-    The norm of first 3 components of $[V_{b}]$ corresponds to the rotational error ($||\omega_{b}||$), and the norm of last 3 components ($||v_{b}||$) corresponds to the translational error.
+The norm of first 3 components of $[V_{b}]$ corresponds to the rotational error ($||\omega_{b}||$), and the norm of last 3 components ($||v_{b}||$) corresponds to the translational error.
 
 4. Calculate the joint angle increments by solving
 
