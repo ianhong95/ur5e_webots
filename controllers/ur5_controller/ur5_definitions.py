@@ -10,10 +10,19 @@ class IntConstants(IntEnum):
     MAX_ITERATIONS = 100
 
 @dataclass(frozen=True)
-class FloatConstants:
+class Thresholds:
     IK_ERROR_THRESHOLD: float = 1e-4
+    ROT_ERROR_THRESHOLD: float = 1e-3
+    TRANS_ERROR_THRESHOLD: float = 0.1
     THETA_THRESHOLD: float = 1e-3
     DAMPING_FACTOR: float = 1.0
+
+@dataclass(frozen=True)
+class Tuning:
+    K_P: float = 2.0
+    K_I: float = 1.0
+    K_D: float = 1.0
+
 
 @dataclass(frozen=True)
 class MotionConstants:
@@ -119,18 +128,22 @@ class Joint(Enum):
     def sensor(self):
         return self.value.sensor_name
     
+    # omega
     @property
     def axis(self):
         return self.value.axis
     
+    # p
     @property
     def point(self):
         return self.value.point
     
+    # v
     @property
     def lin_velocity(self):
         return (-np.cross(self.axis, self.point))
     
+    # S
     @property
     def screw_axis(self):
         return (np.concatenate([self.axis, self.lin_velocity]))
