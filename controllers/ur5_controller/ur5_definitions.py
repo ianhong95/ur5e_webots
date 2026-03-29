@@ -13,15 +13,15 @@ class IntConstants(IntEnum):
 class Thresholds:
     IK_ERROR_THRESHOLD: float = 1e-4
     ROT_ERROR_THRESHOLD: float = 1e-3
-    TRANS_ERROR_THRESHOLD: float = 0.1
+    TRANS_ERROR_THRESHOLD: float = 0.2
     THETA_THRESHOLD: float = 1e-3
     DAMPING_FACTOR: float = 1.0
 
 @dataclass(frozen=True)
 class Tuning:
     K_P: float = 2.0
-    K_I: float = 1.0
-    K_D: float = 1.0
+    K_I: float = 0.035
+    K_D: float = 0.00
 
 
 @dataclass(frozen=True)
