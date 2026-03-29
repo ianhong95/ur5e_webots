@@ -3,7 +3,7 @@ import json
 
 import numpy as np
 
-from ur5_definitions import Joint, IntConstants, FloatConstants, PhysicalParams, PositionConstants
+from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, PositionConstants
 
 
 class Kinematics():
@@ -36,7 +36,7 @@ class Kinematics():
         if shape.lower() == 'h':
             return np.concatenate((rotation, linear)).reshape(1, 6)
         elif shape.lower() == 'v':
-            return np.concatenate((rotation, linear)).reshape(6, 1)
+            return np.concatenate([rotation, linear]).T
 
     def space_to_body_screw(self):
         """
@@ -174,7 +174,7 @@ class Kinematics():
         # If theta = pi, we have 180 degree rotation. The goal of this case is to find the most
         # mathematically stable solution. We want to divide by the largest possible number
         # so the solution doesn't shoot off into infinity.
-        elif abs(theta - pi) < FloatConstants.THETA_THRESHOLD:
+        elif abs(theta - pi) < Thresholds.THETA_THRESHOLD:
             R_diagonals = np.array([R[0, 0], R[1, 1], R[2, 2]])
             max_diag_idx = np.argmax(R_diagonals)   # returns index of max value
 
@@ -190,7 +190,7 @@ class Kinematics():
             w_skew = (1 / (2 * sin(theta))) * (R - R.transpose())
 
             # linear velocity. Handle case where theta is small but non-zero
-            if theta < FloatConstants.THETA_THRESHOLD:
+            if theta < Thresholds.THETA_THRESHOLD:
                 v = p
             else:
                 alpha = (1.0 - (theta/2.0) / tan(theta/2.0)) / (theta**2)
@@ -202,22 +202,25 @@ class Kinematics():
         
         return twist_error
     
-    def space_jacobian(self, curr_joint_angles: list[float]):
+    def space_jacobian(self, exponentials: list[np.ndarray]):
         """
         TODO: Check the math here.
         """
+        T = np.eye(4)
         jacobian = np.zeros((6, PhysicalParams.NUM_JOINTS))
 
-        jacobian[:,0] = Joint.SHOULDER_PAN.screw_axis
+        for i, joint in zip(range(PhysicalParams.NUM_JOINTS), Joint):
+            if i == 0:
+                jacobian[:, i] = joint.screw_axis
+            else:
+                T = T @ exponentials[i - 1]
+            
+                omega = joint.screw_axis[:3]
+                v = joint.screw_axis[3:]
 
-        for idx, (joint, theta) in enumerate(zip(Joint, curr_joint_angles)):
-            if idx > 0:
-                rot_mat = self.compute_rodrigues_rot(joint.axis, theta)
-                p_vec = self.compute_p_vector(joint.axis, theta,joint.lin_velocity)
+                transformed_screw = self.adjoint_transform(T[:3, :3], T[:3, 3], v, omega)
 
-                ad_map = self.adjoint_map(rot_mat, p_vec)
-
-                jacobian[:,idx] = ad_map @ joint.screw_axis
+                jacobian[:, i] = np.transpose(transformed_screw)
 
         return jacobian
     
@@ -263,16 +266,19 @@ class Kinematics():
         """
 
         # We initialize the transform as the identity matrix.
+        exponentials = []
         transform = np.eye(4)
 
         # Compute matrix exponentials and multiply them in sequence
         for joint, angle in zip(Joint, joint_angles):
-            transform = transform @ self.compute_matrix_exp(joint.axis, angle, joint.lin_velocity)
+            matrix_exp = self.compute_matrix_exp(joint.axis, angle, joint.lin_velocity)
+            exponentials.append(matrix_exp)
+            transform = transform @ matrix_exp
         
         # Multiply final transformation matrix and the zero position matrix
         current_position = transform @ PositionConstants.ZERO_TF
         
-        return current_position
+        return exponentials, current_position
     
     def body_forward_kinematics(self, joint_angles: list[float]):
         """
@@ -317,12 +323,12 @@ class Kinematics():
         twist_error = self.compute_twist_error(T_sb, target_tf)
 
         twist_error_6D = self.se3_to_twist(twist_error, 'v')
-        rotation_error = np.linalg.norm(twist_error_6D[:3, 0])
-        translation_error = np.linalg.norm(twist_error_6D[3:6, 0])
+        rotation_error = np.linalg.norm(twist_error_6D[:3])
+        translation_error = np.linalg.norm(twist_error_6D[3:6])
 
         angles_increment = pseudo_inv_jacobian @ twist_error_6D
 
-        return angles_increment, rotation_error, translation_error
+        return angles_increment, rotation_error, translation_error, twist_error_6D
     
     # =========================
     # GEOMETRIC TRANSFORMATIONS
