@@ -15,10 +15,23 @@ The details of the math are documented in the `docs` [README](/docs/README.md) w
 ## Current Functionality
 The current state of this project is still quite basic. The kinematics library is complete to the point where it am able to compute the end-effector's pose based on current joint angles (forward kinematics), and it can solve the joint angles required to achieve a desired end-effector pose (inverse kinematics).
 
+## Control
+Using a PID control loop and speed ramp-up logic in the main motion method, the arm can move more smoothly rather than jerking to an initial velocity.
+
+PID control loop without speed ramp-up:
+
+![PID](assets/ur5e_PID.webp)
+
+PID control loop with speed ramp-up:
+
+![Speed Ramp Up](assets/ur5e_speed_ramp_up.webp)
+
+The jump in the middle of the motions is due to the speed being capped in the middle of an acceleration. This will need the accelerations and limits to be tuned.
+
 ## Further Development
 The simulation environment unlocks many opportunities to explore control theory and optimization techniques. For example, sensor feedback can be integrated to provide a less primitive control scheme, and perhaps other numerical methods can improve accuracy and repeatability. Some features/concepts that I would like to explore are:
 
-* PID control loop
-* Smooth linear motions (rather than swinging in a random arc to the destination)
+* PID control loop [in progress]
+* Smooth linear motions (rather than swinging in a random arc to the destination) [in progress]
 * Gradient descent instead of Newton-Raphson
 * Mathematical stability of inverse kinematics
