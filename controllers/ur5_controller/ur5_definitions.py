@@ -15,21 +15,22 @@ class Thresholds:
     ROT_ERROR_THRESHOLD: float = 1e-3
     TRANS_ERROR_THRESHOLD: float = 0.2
     THETA_THRESHOLD: float = 1e-3
-    DAMPING_FACTOR: float = 1.0
+    DAMPING_FACTOR: float = 1.0     # For damped pseudoinverse
 
 @dataclass(frozen=True)
 class Tuning:
-    K_P: float = 2.0
-    K_I: float = 0.035
-    K_D: float = 0.00
-
+    K_P: float = 4
+    K_I: float = 0.1
+    K_D: float = 0.05
 
 @dataclass(frozen=True)
 class MotionConstants:
-    DEFAULT_LINEAR_VELOCITY: float = 200.0    # mm/s
-    DEFAULT_ANGULAR_VELOCITY: float = 1.0   # rad/s
-    MAX_ANGULAR_VELOCITY: float = 2.0   # rad/s
-    MAX_LINEAR_VELOCITY: float = 1000.0   # mm/s
+    DEFAULT_LINEAR_SPEED: float = 200.0    # mm/s
+    DEFAULT_ANGULAR_SPEED: float = 1.0   # rad/s
+    MAX_LINEAR_SPEED: float = 0.5   # m/s
+    MAX_JOINT_SPEED: float = 3.14   # rad/s
+    LINEAR_ACCEL: float = 0.3       # m/s^2
+    JOINT_ACCEL: float = 0.05    # rad/s^2
 
 @dataclass(frozen=True)
 class PhysicalParams:
