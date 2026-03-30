@@ -7,7 +7,7 @@ from math import pi
 import numpy as np
 import time
 
-from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning
+from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning, MotionConstants
 from kinematics import Kinematics
 
 
@@ -132,14 +132,18 @@ class UR5Controller(Robot):
     def go_to_speed(self, target_tf: np.ndarray):
         """
         Use inverse velocity kinematics to move the end-effector in a straight line.
+        Contains a PID loop and velocity ramp-up logic.
         """
+
         for motor in self.motors.values():
             motor.setPosition(float('inf'))
             motor.setVelocity(0.0)
 
         integral_error = np.zeros(6)
         previous_error = np.zeros(6)
-        delta_t = self.TIMESTEP / 1000.0
+        current_speed = 0.0     # m/s
+        delta_t = self.TIMESTEP / 1000.0    # seconds
+        max_speed_reached = False
 
         while self.step(self.TIMESTEP) != -1:
             self.update_joint_angles()
@@ -156,6 +160,7 @@ class UR5Controller(Robot):
             trans_error = np.linalg.norm(twist_error_6D[3:6])
 
             integral_error += twist_error_6D * delta_t
+            integral_error = np.clip(integral_error, -0.5, 0.5)
             
             derivative_error = (twist_error_6D - previous_error) / delta_t
             previous_error = twist_error_6D
@@ -164,10 +169,28 @@ class UR5Controller(Robot):
             print(f'new_twist_error: {new_twist_error}')
             joint_velocities = np.linalg.pinv(current_jacobian) @ new_twist_error
             # --------------------------------------------
+            
+            # The norm is the magnitude
+            joint_vel_norm = np.linalg.norm(joint_velocities)
+
+            # Normalize to isolate the 'direction' (as a unit vector) by dividing by magnitude
+            # In this case, 'direction' is a normalized ratio of joint velocities relative to each other.
+            normalized_joint_vel = joint_velocities / joint_vel_norm
+
+            # Limit the ramped up speed
+            if not max_speed_reached:
+                # v = v0 + (a * t) but capped at a max linear speed
+                current_speed = min(MotionConstants.MAX_LINEAR_SPEED, current_speed + (MotionConstants.LINEAR_ACCEL * delta_t))
+
+                joint_velocities = normalized_joint_vel * current_speed
+
+                if current_speed >= MotionConstants.MAX_LINEAR_SPEED:
+                    max_speed_reached = True
 
             if abs(rot_error) > Thresholds.ROT_ERROR_THRESHOLD or abs(trans_error) > Thresholds.TRANS_ERROR_THRESHOLD:
                 for joint, motor in self.motors.items():
-                    scalar_joint_velocity = np.clip(joint_velocities[joint.idx].reshape(()), -1, 1)
+                    scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
+                    scalar_joint_velocity = np.clip(scalar_joint_velocity, -MotionConstants.MAX_JOINT_SPEED, MotionConstants.MAX_JOINT_SPEED)
                     motor.setVelocity(scalar_joint_velocity)
             else:
                 for motor in self.motors.values():
