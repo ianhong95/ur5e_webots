@@ -4,31 +4,25 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/universal_robots/protos/UR5e.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/CircleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotiq/protos/Robotiq2f85Gripper.proto"
 
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.28436681704611505 0.11702335331607439 0.9515466610428113 2.3951395313019535
-  position 2.4966463340442546 -2.471044185165582 2.576138428801112
+  orientation -0.221546528715906 0.08097142813345219 0.971782261332219 2.4590539119159045
+  position 2.4657670373946665 -2.0902553740698804 1.811069112680336
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 UR5e {
-  hidden position_0_0 -9.541538121825394e-05
-  hidden rotation_1 0 0 -1 9.541538270729178e-05
-  hidden position_1_0 5.7177494105396136e-05
-  hidden rotation_2 0 1 0 1.5708531774941055
-  hidden position_2_0 1.5863537579585197e-05
-  hidden rotation_3 0 1 0 1.5863544135755236e-05
-  hidden position_3_0 -6.530287099134536e-06
-  hidden rotation_4 0 1 0 1.570789469712901
-  hidden position_4_0 4.110136926244881e-07
-  hidden rotation_5 0 0 0.9999999999999999 4.107966647175028e-07
-  hidden position_5_0 -4.1141856854665093e-07
-  hidden rotation_6 0 -1 0 4.1187628987685676e-07
   controller "<extern>"
+  toolSlot [
+    Robotiq2f85Gripper {
+      rotation 0.5771968951617173 0.5771968951617173 0.577656895078166 -2.093935307179586
+    }
+  ]
 }
 CircleArena {
 }
