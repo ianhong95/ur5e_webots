@@ -6,9 +6,11 @@ from controller import Robot, DistanceSensor, Motor, PositionSensor
 from math import pi
 import numpy as np
 import time
+import multiprocessing as mp
 
 from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning, MotionConstants
 from kinematics import Kinematics
+from utilities.pid_error_plot import ErrorPlot
 
 
 class UR5Controller(Robot):
@@ -19,7 +21,6 @@ class UR5Controller(Robot):
         'HORIZONTAL': [0.000, 0.000, 0.000, 0.000, 0.000, 0.000],
         'HOME': [0, -3*pi/4, pi/2, -pi/4, -pi/2, 0.000],
         'TEST': [0, -pi/2, pi/2, -pi/2, -pi/2, 0]
-        # 'TEST': [0, 0, 0, 0, 0, pi/2]
     }
 
     TEST_TARGETS = {
@@ -50,6 +51,10 @@ class UR5Controller(Robot):
         self.step(self.TIMESTEP)
         self.update_joint_angles()
         self.step(self.TIMESTEP)
+
+        self.parent_conn, child_conn = mp.Pipe()
+        self.error_plot = ErrorPlot(child_conn)
+        self.error_plot.start()
 
         time.sleep(1)
 
@@ -135,6 +140,8 @@ class UR5Controller(Robot):
         Contains a PID loop and velocity ramp-up logic.
         """
 
+        self.normalized_twist = 0
+
         for motor in self.motors.values():
             motor.setPosition(float('inf'))
             motor.setVelocity(0.0)
@@ -167,6 +174,10 @@ class UR5Controller(Robot):
 
             new_twist_error = (twist_error_6D * Tuning.K_P) + (integral_error * Tuning.K_I) + (derivative_error * Tuning.K_D)
             print(f'new_twist_error: {new_twist_error}')
+
+            self.normalized_twist = np.linalg.norm(new_twist_error)
+            self.parent_conn.send(self.normalized_twist)
+
             joint_velocities = np.linalg.pinv(current_jacobian) @ new_twist_error
             # --------------------------------------------
             
@@ -244,7 +255,6 @@ class UR5Controller(Robot):
 
         target_tf = self.k.rel_trans_xyz(target_coords, current_tf)
 
-        # self.go_to_position(target_tf)
         self.go_to_speed(target_tf)
 
         return self
