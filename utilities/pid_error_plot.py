@@ -26,7 +26,7 @@ class ErrorPlot(mp.Process):
             3,
             (0, 500),
             (-0.0025, 0.0025),
-            ('Iteration', 'Error (radians)')
+            ('Iteration', 'Error (rad/s)')
         )
 
         v_curves = self.create_multi_line_plot(
@@ -36,7 +36,7 @@ class ErrorPlot(mp.Process):
             3,
             (0, 500),
             (-1500, 1500),
-            ('Iteration', 'Error (mm)')
+            ('Iteration', 'Error (mm/s)')
         )
 
         data = [[], [], [], [], [], []]
