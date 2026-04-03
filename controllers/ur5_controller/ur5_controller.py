@@ -176,7 +176,7 @@ class UR5Controller(Robot):
             print(f'new_twist_error: {new_twist_error}')
 
             self.normalized_twist = np.linalg.norm(new_twist_error)
-            self.parent_conn.send(self.normalized_twist)
+            self.parent_conn.send(new_twist_error)
 
             joint_velocities = np.linalg.pinv(current_jacobian) @ new_twist_error
             # --------------------------------------------
