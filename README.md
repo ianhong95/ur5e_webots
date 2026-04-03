@@ -28,6 +28,10 @@ PID control loop with speed ramp-up:
 
 The jump in the middle of the motions is due to the speed being capped in the middle of an acceleration. This will need the accelerations and limits to be tuned.
 
+To better tune the PID control and speed/acceleration curves, I implemented a visualizer for the twist error.
+
+![Plots](assets/pid_plots.webp)
+
 ## Further Development
 The simulation environment unlocks many opportunities to explore control theory and optimization techniques. For example, sensor feedback can be integrated to provide a less primitive control scheme, and perhaps other numerical methods can improve accuracy and repeatability. Some features/concepts that I would like to explore are:
 
