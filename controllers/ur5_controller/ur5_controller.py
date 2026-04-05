@@ -15,7 +15,7 @@ from ik_solver_newton_raphson import IK_Solver
 from pid_helper import PID_Controller
 from trapezoidal_velocity_profile import VelocityProfile
 
-class UR5Controller(Robot):
+class UR5Controller(Robot, Kinematics):
 
     TIMESTEP = IntConstants.TIMESTEP
 
@@ -46,7 +46,6 @@ class UR5Controller(Robot):
         print("Connecting to Webots...")
 
         self._init_joints_and_sensors()
-        self.k = Kinematics()
         self.ik_solver = IK_Solver()
         self.pid = PID_Controller()
         self.vel_profile = VelocityProfile()
@@ -102,9 +101,6 @@ class UR5Controller(Robot):
     def update_joint_angles(self):
         for joint, sensor in self.sensors.items():
             self.joint_angles[joint.idx] = sensor.getValue()
-        
-        # Debug printing
-        # joint_angles = [f'{angle:.5f}' for angle in self.joint_angles]
 
     def go_to_position(self, target_tf: np.ndarray, linear_speed: float = 200.0, angular_speed: float = 1.0):
         """
@@ -116,13 +112,13 @@ class UR5Controller(Robot):
         self.step(self.TIMESTEP)
 
         target_joint_angles = self.joint_angles.copy()
-        _, initial_pose = self.k.body_forward_kinematics(self.joint_angles)
+        _, initial_pose = self.body_forward_kinematics(self.joint_angles)
 
         # Solve inverse kinematics numerically using Newton-Raphson
         for i in range(IntConstants.MAX_ITERATIONS):
 
             # Set the initial guess to the "target_joint_angles" which are initially the current joint angles
-            delta_theta, rot_error, trans_error, twist_error_6D = self.k.inv_kinematics(target_tf, target_joint_angles)
+            delta_theta, rot_error, trans_error, twist_error_6D = self.inv_kinematics(target_tf, target_joint_angles)
 
             if rot_error > Thresholds.IK_ERROR_THRESHOLD or trans_error > Thresholds.IK_ERROR_THRESHOLD:
                 for idx, angle_increment in enumerate(delta_theta):
@@ -221,87 +217,3 @@ class UR5Controller(Robot):
         for joint, motor in self.motors.items():
             motor.setPosition(float('inf'))
             motor.setVelocity(joint_velocity_list[joint.idx])
-
-    def move_x(self, x_target: float):
-        target_coords = (x_target, 0, 0)
-        _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
-
-        target_tf = self.k.rel_trans_xyz(target_coords, current_tf)
-
-        self.go_to_speed(target_tf)
-
-        return self
-    
-    def move_y(self, y_target: float):
-        target_coords = (0, y_target, 0)
-
-        self.update_joint_angles()
-
-        _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
-
-        target_tf = self.k.rel_trans_xyz(target_coords, current_tf)
-
-        self.go_to_speed(target_tf)
-
-        return self
-    
-    def move_z(self, z_target: float):
-        target_coords = (0, 0, z_target)
-        _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
-
-        target_tf = self.k.rel_trans_xyz(target_coords, current_tf)
-
-        self.go_to_speed(target_tf)
-
-        return self
-    
-    def rot_x(self, theta: float):
-        _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
-
-        target_tf = self.k.rot_x(theta, current_tf)
-
-        self.go_to_speed(target_tf)
-
-        return self
-    
-    def rot_y(self, theta: float):
-        _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
-
-        target_tf = self.k.rot_y(theta, current_tf)
-
-        self.go_to_speed(target_tf)
-
-        return self
-    
-    def rot_z(self, theta: float):
-        _, current_tf = self.k.body_forward_kinematics(self.joint_angles)
-
-        target_tf = self.k.rot_z(theta, current_tf)
-
-        self.go_to_speed(target_tf)
-
-        return self
-
-
-def main():
-    robot = UR5Controller()
-
-    robot.set_joint_angles(robot.DEFAULT_POSITIONS['HOME'])
-    robot.go_to_position(robot.TEST_TARGETS['TEST'])
-    _, fk = robot.k.body_forward_kinematics(robot.joint_angles) 
-    
-    while True:
-        robot.move_x(-150)
-        robot.move_y(200)
-        robot.move_x(150)
-        robot.move_y(-400)
-        robot.move_x(-150)
-        robot.move_z(150)
-        robot.move_z(-150)
-        robot.move_y(200)
-        # robot.rot_y(pi/4)
-        # robot.rot_y(-pi/4)
-        robot.move_x(150)
-
-if __name__ == '__main__':
-    main()

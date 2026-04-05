@@ -5,7 +5,7 @@ def main():
 
     robot.set_joint_angles(robot.DEFAULT_POSITIONS['HOME'])
     robot.go_to_position(robot.TEST_TARGETS['TEST'])
-    _, fk = robot.k.body_forward_kinematics(robot.joint_angles) 
+    _, fk = robot.body_forward_kinematics(robot.joint_angles) 
     
     while True:
         robot.move_x(-150)

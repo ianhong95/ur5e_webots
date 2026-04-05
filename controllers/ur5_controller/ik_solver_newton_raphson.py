@@ -9,8 +9,8 @@ class IK_Solver(Kinematics):
         self.reset()
 
     def compute_body_jacobian(self, target_joint_angles: list[float]):
-        exp, T_sb = self.k.body_forward_kinematics(target_joint_angles)
-        current_jacobian = self.k.body_jacobian(exp)
+        exp, T_sb = self.body_forward_kinematics(target_joint_angles)
+        current_jacobian = self.body_jacobian(exp)
 
         return current_jacobian, T_sb
 
@@ -22,9 +22,9 @@ class IK_Solver(Kinematics):
         """
         Computes and processes the twist error for one iteration.
         """
-        twist_error = self.k.compute_twist_error(T_sb, target_tf)
+        twist_error = self.compute_twist_error(T_sb, target_tf)
 
-        twist_error_6D = self.k.se3_to_twist(twist_error, 'v')
+        twist_error_6D = self.se3_to_twist(twist_error, 'v')
         rot_error = np.linalg.norm(twist_error_6D[:3])
         trans_error = np.linalg.norm(twist_error_6D[3:6])
 
