@@ -3,9 +3,9 @@ import numpy as np
 from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning, MotionConstants
 from kinematics import Kinematics
 
-class IK_Solver():
+class IK_Solver(Kinematics):
     def __init__(self):
-        self.k = Kinematics()
+        super().__init__()
         self.reset()
 
     def compute_body_jacobian(self, target_joint_angles: list[float]):
