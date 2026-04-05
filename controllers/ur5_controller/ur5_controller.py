@@ -11,6 +11,8 @@ import multiprocessing as mp
 from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning, MotionConstants
 from kinematics import Kinematics
 from utilities.pid_error_plot import ErrorPlot
+from ik_solver_newton_raphson import IK_Solver
+from pid_helper import PID_Controller
 
 
 class UR5Controller(Robot):
@@ -45,6 +47,8 @@ class UR5Controller(Robot):
 
         self._init_joints_and_sensors()
         self.k = Kinematics()
+        self.ik_solver = IK_Solver()
+        self.pid = PID_Controller()
         self.target_reached = False
 
         # We need to step ahead one timestep after initializing everything.
@@ -83,6 +87,11 @@ class UR5Controller(Robot):
         self.joint_angles = [0.00000] * len(Joint)
 
         print(f'Sensors enabled.')
+
+    def reset_motor_speeds(self):
+        for motor in self.motors.values():
+            motor.setPosition(float('inf'))
+            motor.setVelocity(0.0)        
     
     # =================
     # FEEDBACK METHODS
@@ -139,65 +148,35 @@ class UR5Controller(Robot):
         Use inverse velocity kinematics to move the end-effector in a straight line.
         Contains a PID loop and velocity ramp-up logic.
         """
+        self.pid.reset()
+        self.ik_solver.reset()
+        self.reset_motor_speeds()
 
-        self.normalized_twist = 0
-
-        for motor in self.motors.values():
-            motor.setPosition(float('inf'))
-            motor.setVelocity(0.0)
-
-        integral_error = np.zeros(6)
-        previous_error = np.zeros(6)
         current_speed = 0.0     # m/s
-        delta_t = self.TIMESTEP / 1000.0    # seconds
         max_speed_reached = False
 
         while self.step(self.TIMESTEP) != -1:
             self.update_joint_angles()
-
             target_joint_angles = self.joint_angles.copy()
-
-            # --- INVERSE KINEMATICS WITH PID -----
-            exp, T_sb = self.k.body_forward_kinematics(target_joint_angles)
-            current_jacobian = self.k.body_jacobian(exp)
-            twist_error = self.k.compute_twist_error(T_sb, target_tf)
-
-            twist_error_6D = self.k.se3_to_twist(twist_error, 'v')
-            rot_error = np.linalg.norm(twist_error_6D[:3])
-            trans_error = np.linalg.norm(twist_error_6D[3:6])
-
-            integral_error += twist_error_6D * delta_t
-            integral_error = np.clip(integral_error, -0.5, 0.5)
             
-            derivative_error = (twist_error_6D - previous_error) / delta_t
-            previous_error = twist_error_6D
+            body_jacobian, T_sb = self.ik_solver.compute_body_jacobian(target_joint_angles)
+            rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
 
-            new_twist_error = (twist_error_6D * Tuning.K_P) + (integral_error * Tuning.K_I) + (derivative_error * Tuning.K_D)
-            print(f'new_twist_error: {new_twist_error}')
+            pid_applied_twist_error = self.pid.compute_pid_error(twist_error_6D)
+            self.parent_conn.send(pid_applied_twist_error)
 
-            self.normalized_twist = np.linalg.norm(new_twist_error)
-            self.parent_conn.send(new_twist_error)
+            joint_velocities, normalized_joint_velocities = self.ik_solver.compute_normalized_joint_velocities(pid_applied_twist_error, body_jacobian)
 
-            joint_velocities = np.linalg.pinv(current_jacobian) @ new_twist_error
-            # --------------------------------------------
-            
-            # The norm is the magnitude
-            joint_vel_norm = np.linalg.norm(joint_velocities)
-
-            # Normalize to isolate the 'direction' (as a unit vector) by dividing by magnitude
-            # In this case, 'direction' is a normalized ratio of joint velocities relative to each other.
-            normalized_joint_vel = joint_velocities / joint_vel_norm
-
+            # TODO: Move this to a trapezoidal velocity profile class
             # Limit the ramped up speed
             if not max_speed_reached:
                 # v = v0 + (a * t) but capped at a max linear speed
-                current_speed = min(MotionConstants.MAX_LINEAR_SPEED, current_speed + (MotionConstants.LINEAR_ACCEL * delta_t))
-
-                joint_velocities = normalized_joint_vel * current_speed
-
+                current_speed = min(MotionConstants.MAX_LINEAR_SPEED, current_speed + (MotionConstants.LINEAR_ACCEL * self.pid.delta_t))
+                joint_velocities = normalized_joint_velocities * current_speed
                 if current_speed >= MotionConstants.MAX_LINEAR_SPEED:
                     max_speed_reached = True
 
+            # TODO: This should probably be part of Newton-Raphson
             if abs(rot_error) > Thresholds.ROT_ERROR_THRESHOLD or abs(trans_error) > Thresholds.TRANS_ERROR_THRESHOLD:
                 for joint, motor in self.motors.items():
                     scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
