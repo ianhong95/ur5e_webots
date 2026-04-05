@@ -6,16 +6,15 @@ import numpy as np
 class PID_Controller():
     def __init__(self):
         self.reset()
-        self.delta_t = IntConstants.TIMESTEP / 1000.0    # seconds
 
     def compute_pid_error(
             self,
             twist_error_6D,
     ):
-        self.integral_error += twist_error_6D * self.delta_t
+        self.integral_error += twist_error_6D * IntConstants.TIMESTEP / 1000.0
         self.integral_error = np.clip(self.integral_error, -0.5, 0.5)
 
-        self.derivative_error = (twist_error_6D - self.previous_error) / self.delta_t
+        self.derivative_error = (twist_error_6D - self.previous_error) / (IntConstants.TIMESTEP / 1000.0)
         self.previous_error = twist_error_6D
 
         pid_applied_twist_error = (twist_error_6D * Tuning.K_P) + (self.integral_error * Tuning.K_I) + (self.derivative_error * Tuning.K_D)
