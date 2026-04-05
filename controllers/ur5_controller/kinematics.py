@@ -8,9 +8,7 @@ from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Pos
 
 class Kinematics():
     def __init__(self):
-        self.BODY_SCREWS = self.space_to_body_screw()
-        # exp, T = self.body_forward_kinematics([0, 0, 0, 0, 0, 0])
-        # self.body_jacobian([0, 0, 0, 0, 0, 0], T, exp)
+        print(f'Kinematics methods initialized.')
 
     # =============================
     # GENERAL COMPUTATION UTILITIES
@@ -234,15 +232,17 @@ class Kinematics():
         T = np.eye(4)
         jacobian = np.zeros((6, PhysicalParams.NUM_JOINTS))
 
-        jacobian[:, -1] = self.BODY_SCREWS[-1]
+        body_screws = self.space_to_body_screw()
+
+        jacobian[:, -1] = body_screws[-1]
 
         for i in range(PhysicalParams.NUM_JOINTS - 2, -1, -1):
             inv_exp = np.linalg.inv(exponentials[i + 1])
 
             T = T @ inv_exp
 
-            omega = self.BODY_SCREWS[i][:3]
-            v = self.BODY_SCREWS[i][3:]
+            omega = body_screws[i][:3]
+            v = body_screws[i][3:]
 
             transformed_screw = self.adjoint_transform(T[:3, :3], T[:3, 3], v, omega)
 
@@ -293,9 +293,10 @@ class Kinematics():
         # We initialize the transform as the identity matrix.
         exponentials = []
         transform = np.eye(4)
+        body_screws = self.space_to_body_screw()
 
         # Compute matrix exponentials and multiply them in sequence
-        for screw_axis, angle in zip(self.BODY_SCREWS, joint_angles):
+        for screw_axis, angle in zip(body_screws, joint_angles):
             omega = np.transpose(screw_axis[:3])
             lin_velocity = np.transpose(screw_axis[3:])
 
