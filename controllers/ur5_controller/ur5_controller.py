@@ -13,7 +13,7 @@ from kinematics import Kinematics
 from utilities.pid_error_plot import ErrorPlot
 from ik_solver_newton_raphson import IK_Solver
 from pid_helper import PID_Controller
-
+from trapezoidal_velocity_profile import VelocityProfile
 
 class UR5Controller(Robot):
 
@@ -49,6 +49,8 @@ class UR5Controller(Robot):
         self.k = Kinematics()
         self.ik_solver = IK_Solver()
         self.pid = PID_Controller()
+        self.vel_profile = VelocityProfile()
+
         self.target_reached = False
 
         # We need to step ahead one timestep after initializing everything.
@@ -151,9 +153,7 @@ class UR5Controller(Robot):
         self.pid.reset()
         self.ik_solver.reset()
         self.reset_motor_speeds()
-
-        current_speed = 0.0     # m/s
-        max_speed_reached = False
+        self.vel_profile.reset()
 
         while self.step(self.TIMESTEP) != -1:
             self.update_joint_angles()
@@ -167,14 +167,8 @@ class UR5Controller(Robot):
 
             joint_velocities, normalized_joint_velocities = self.ik_solver.compute_normalized_joint_velocities(pid_applied_twist_error, body_jacobian)
 
-            # TODO: Move this to a trapezoidal velocity profile class
             # Limit the ramped up speed
-            if not max_speed_reached:
-                # v = v0 + (a * t) but capped at a max linear speed
-                current_speed = min(MotionConstants.MAX_LINEAR_SPEED, current_speed + (MotionConstants.LINEAR_ACCEL * self.pid.delta_t))
-                joint_velocities = normalized_joint_velocities * current_speed
-                if current_speed >= MotionConstants.MAX_LINEAR_SPEED:
-                    max_speed_reached = True
+            joint_velocities = self.vel_profile.ramp_up(joint_velocities, normalized_joint_velocities)
 
             # TODO: This should probably be part of Newton-Raphson
             if abs(rot_error) > Thresholds.ROT_ERROR_THRESHOLD or abs(trans_error) > Thresholds.TRANS_ERROR_THRESHOLD:
