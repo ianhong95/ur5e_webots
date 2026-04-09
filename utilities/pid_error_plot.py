@@ -17,7 +17,7 @@ class ErrorPlot(mp.Process):
         """
         # Set up the plot GUI
         app = QtWidgets.QApplication([])    # The high level manager
-        multi_plot_window = pg.GraphicsLayoutWidget(show=True, size=(960, 540), title="UR5e PID Twist Errors")
+        multi_plot_window = pg.GraphicsLayoutWidget(show=True, size=(1440, 720), title="UR5e PID Twist Errors")
 
         w_curves = self.create_multi_line_plot(
             multi_plot_window,
@@ -39,7 +39,17 @@ class ErrorPlot(mp.Process):
             ('Iteration', 'Error (mm/s)')
         )
 
-        data = [[], [], [], [], [], []]
+        lin_speed_curve = self.create_multi_line_plot(
+            multi_plot_window,
+            (1, 0),
+            'End-Effector Linear Speed',
+            1,
+            (0, 500),
+            (-1, 1),
+            ('Iteration', 'End-Effector Linear Speed (m/s)')
+        )
+
+        data = [[], [], [], [], [], [], []]
 
         def update_data():
             while self.pipe.poll():     # self.pipe.poll() returns True if there is a message waiting.
@@ -47,14 +57,19 @@ class ErrorPlot(mp.Process):
 
                 # Create plot for twist rotational eror
                 for i in range(6):
-                    data[i].append(full_data[i])
+                    data[i].append(full_data[0][i])
                     if len(data[i]) > 500: data[i].pop(0)
+
+                data[6].append(full_data[1])
+                if len(data[6]) > 500: data[6].pop(0)
 
                 for i in range(3):
                     w_curves[i - 3].setData(data[i])
                 
                 for i in range(3, 6):
                     v_curves[i - 3].setData(data[i])
+
+                lin_speed_curve[0].setData(data[6])
 
         timer = QtCore.QTimer()     # Create a timer object
         timer.timeout.connect(update_data)      # When the timer elapses, run the connected function.
