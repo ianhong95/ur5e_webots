@@ -159,18 +159,16 @@ class UR5Controller(Robot, Kinematics):
             rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
 
             pid_applied_twist_error = self.pid.compute_pid_error(twist_error_6D)
-            self.parent_conn.send(pid_applied_twist_error)
 
             joint_velocities, normalized_joint_velocities = self.ik_solver.compute_normalized_joint_velocities(pid_applied_twist_error, body_jacobian)
 
-            # Limit the ramped up speed
-            joint_velocities = self.vel_profile.ramp_up(joint_velocities, normalized_joint_velocities)
-
             # TODO: This should probably be part of Newton-Raphson
             if abs(rot_error) > Thresholds.ROT_ERROR_THRESHOLD or abs(trans_error) > Thresholds.TRANS_ERROR_THRESHOLD:
+                joint_velocities, lin_velocity = self.vel_profile.trapezoid(T_sb, target_tf, joint_velocities, normalized_joint_velocities)
+                self.parent_conn.send((pid_applied_twist_error, lin_velocity))
                 for joint, motor in self.motors.items():
                     scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
-                    scalar_joint_velocity = np.clip(scalar_joint_velocity, -MotionConstants.MAX_JOINT_SPEED, MotionConstants.MAX_JOINT_SPEED)
+                    # scalar_joint_velocity = np.clip(scalar_joint_velocity, -MotionConstants.MAX_JOINT_SPEED, MotionConstants.MAX_JOINT_SPEED)
                     motor.setVelocity(scalar_joint_velocity)
             else:
                 for motor in self.motors.values():
