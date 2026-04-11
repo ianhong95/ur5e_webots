@@ -98,6 +98,10 @@ class Kinematics():
     def compute_matrix_exp(self, omega_vector: np.ndarray, theta: float, lin_velocity: np.ndarray):
         """
         Computes the matrix exponential.
+        omega_vector is a 3x1(?) vector of wx, wy, wz.
+        lin_velocity is a 3x1(?) vector of vx, vy, vz.
+
+        Returns a 4x4 matrix.
         """
         R = self.compute_rodrigues_rot(omega_vector, theta)
         p = self.compute_p_vector(omega_vector, theta, lin_velocity)
@@ -143,6 +147,8 @@ class Kinematics():
         """
         Computes the twist error matrix [V]. It's a 4x4 matrix with omega as the
         3x3 rotation component and v as the 3x1 linear component.
+
+        This operation is the matrix logarithm: log(Tsb^-1 @ T_sd)
         """
         twist_error = np.zeros((4, 4))
 
