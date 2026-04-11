@@ -49,6 +49,7 @@ class UR5Controller(Robot, Kinematics):
         self.ik_solver = IK_Solver()
         self.pid = PID_Controller()
         self.vel_profile = VelocityProfile()
+        self.current_speed = 0.0
 
         self.target_reached = False
 
@@ -144,31 +145,51 @@ class UR5Controller(Robot, Kinematics):
     def go_to_speed(self, target_tf: np.ndarray):
         """
         Use inverse velocity kinematics to move the end-effector in a straight line.
-        Contains a PID loop and velocity ramp-up logic.
+        Follows a trapezoidal velocity profile.
+        target_tf is in the body frame (T_bd), and is used as X_end.
         """
         self.pid.reset()
         self.ik_solver.reset()
         self.reset_motor_speeds()
         self.vel_profile.reset()
 
+        # Setup
+        self.update_joint_angles()
+        target_joint_angles = self.joint_angles.copy()
+
+        # Compute t_ramp_time, t_cruise, and T
+        self.vel_profile.calc_time_markers()
+
+        t = 0.0
+
         while self.step(self.TIMESTEP) != -1:
+            t += (IntConstants.TIMESTEP / 1000.0)
             self.update_joint_angles()
             target_joint_angles = self.joint_angles.copy()
+
+            # This is X_start which updates every frame.
+            T_sb = self.space_forward_kinematics(self.joint_angles)
+
+            # Calculate s(t) and s_dot(t)
+            s, s_dot = self.vel_profile.calc_s(t)
             
             body_jacobian, T_sb = self.ik_solver.compute_body_jacobian(target_joint_angles)
+
+            # Matrix logarithm to get twist vector from T_sb to T_bd
             rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
 
-            pid_applied_twist_error = self.pid.compute_pid_error(twist_error_6D)
+            # This is the twist velocity to get from T_sb to T_bd
+            scaled_twist = twist_error_6D * s_dot
+            
+            # Target velocities.
+            pid_twist_error = self.pid.compute_pid_error(scaled_twist)
+            joint_velocities, normalized_joint_velocities = self.ik_solver.compute_normalized_joint_velocities(pid_twist_error, body_jacobian)
+            joint_velocities = normalized_joint_velocities * s_dot
 
-            joint_velocities, normalized_joint_velocities = self.ik_solver.compute_normalized_joint_velocities(pid_applied_twist_error, body_jacobian)
-
-            # TODO: This should probably be part of Newton-Raphson
             if abs(rot_error) > Thresholds.ROT_ERROR_THRESHOLD or abs(trans_error) > Thresholds.TRANS_ERROR_THRESHOLD:
-                joint_velocities, lin_velocity = self.vel_profile.trapezoid(T_sb, target_tf, joint_velocities, normalized_joint_velocities)
-                self.parent_conn.send((pid_applied_twist_error, lin_velocity))
+                self.parent_conn.send((pid_twist_error, s_dot))
                 for joint, motor in self.motors.items():
                     scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
-                    # scalar_joint_velocity = np.clip(scalar_joint_velocity, -MotionConstants.MAX_JOINT_SPEED, MotionConstants.MAX_JOINT_SPEED)
                     motor.setVelocity(scalar_joint_velocity)
             else:
                 for motor in self.motors.values():
