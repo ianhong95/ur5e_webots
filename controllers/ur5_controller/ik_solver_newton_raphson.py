@@ -32,20 +32,20 @@ class IK_Solver(Kinematics):
 
     def compute_normalized_joint_velocities(
             self,
-            pid_applied_twist_error: np.ndarray,
+            twist_error_6D: np.ndarray,
             body_jacobian: np.ndarray
     ):
-        self.normalized_twist = np.linalg.norm(pid_applied_twist_error)
-        joint_velocities = np.linalg.pinv(body_jacobian) @ pid_applied_twist_error
+        self.normalized_twist = np.linalg.norm(twist_error_6D)
+        target_joint_velocities = np.linalg.pinv(body_jacobian) @ twist_error_6D
         
         # The norm is the magnitude        
-        joint_velocities_norm = np.linalg.norm(joint_velocities)
+        joint_velocities_norm = np.linalg.norm(target_joint_velocities)
 
         # Normalize to isolate the 'direction' (as a unit vector) by dividing by magnitude
         # In this case, 'direction' is a normalized ratio of joint velocities relative to each other.        
-        normalized_joint_velocities = joint_velocities / joint_velocities_norm
+        normalized_joint_velocities = target_joint_velocities / joint_velocities_norm
 
-        return joint_velocities, normalized_joint_velocities
+        return target_joint_velocities, normalized_joint_velocities
     
     def reset(self):
         self.normalized_twist = 0
