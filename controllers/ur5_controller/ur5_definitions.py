@@ -33,7 +33,7 @@ class MotionConstants:
     DEFAULT_ANGULAR_SPEED: float = 1.0   # rad/s
     MAX_LINEAR_SPEED: float = 0.5   # m/s
     MAX_JOINT_SPEED: float = 3.14   # rad/s
-    LINEAR_ACCEL: float = 0.3       # m/s^2
+    MAX_LINEAR_ACCEL: float = 1.0       # m/s^2
     JOINT_ACCEL: float = 0.1    # rad/s^2
 
 @dataclass(frozen=True)
