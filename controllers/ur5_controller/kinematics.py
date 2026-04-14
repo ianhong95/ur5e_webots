@@ -353,8 +353,8 @@ class Kinematics():
             [0, 0, 0, 1]
         ])
 
-        print(f'current_tf: {current_tf}')
-        print(f'target_tf: {current_tf @ trans_tf}')
+        # print(f'current_tf: {current_tf}')
+        # print(f'target_tf: {current_tf @ trans_tf}')
 
         return current_tf @ trans_tf
     
