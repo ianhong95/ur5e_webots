@@ -152,13 +152,18 @@ class UR5Controller(Robot, Kinematics):
         self.ik_solver.reset()
         self.reset_motor_speeds()
         self.vel_profile.reset()
-
-        # Setup
         self.update_joint_angles()
-        target_joint_angles = self.joint_angles.copy()
+
+        # Get starting pose and twist vector.
+        _, T_sb = self.space_forward_kinematics(self.joint_angles)
+        rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
 
         # Compute t_ramp_time, t_cruise, and T
-        self.vel_profile.calc_time_markers()
+        self.vel_profile.calc_time_markers(T_sb, target_tf)
+
+        # Normalize the twist vector by the total linear distance.
+        # This gives us a unit twist vector that we can scale by the linear speed.
+        unit_twist = twist_error_6D / self.vel_profile.d_total
 
         t = 0.0
 
@@ -167,35 +172,35 @@ class UR5Controller(Robot, Kinematics):
             self.update_joint_angles()
             target_joint_angles = self.joint_angles.copy()
 
-            # This is X_start which updates every frame.
-            T_sb = self.space_forward_kinematics(self.joint_angles)
-
             # Calculate s(t) and s_dot(t)
-            s, s_dot = self.vel_profile.calc_s(t)
-            
+            s, s_dot = self.vel_profile.calc_s(t, rot_error, trans_error)
+
+            # Get the actual twist vector based on the linear velocity
+            scaled_twist = unit_twist * s_dot
+
             body_jacobian, T_sb = self.ik_solver.compute_body_jacobian(target_joint_angles)
-
-            # Matrix logarithm to get twist vector from T_sb to T_bd
             rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
-
-            # This is the twist velocity to get from T_sb to T_bd
-            scaled_twist = twist_error_6D * s_dot
             
             # Target velocities.
             pid_twist_error = self.pid.compute_pid_error(scaled_twist)
-            joint_velocities, normalized_joint_velocities = self.ik_solver.compute_normalized_joint_velocities(pid_twist_error, body_jacobian)
-            joint_velocities = normalized_joint_velocities * s_dot
+            joint_velocities, _ = self.ik_solver.compute_normalized_joint_velocities(pid_twist_error, body_jacobian)
 
-            if abs(rot_error) > Thresholds.ROT_ERROR_THRESHOLD or abs(trans_error) > Thresholds.TRANS_ERROR_THRESHOLD:
-                self.parent_conn.send((pid_twist_error, s_dot))
-                for joint, motor in self.motors.items():
-                    scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
-                    motor.setVelocity(scalar_joint_velocity)
-            else:
-                for motor in self.motors.values():
-                    motor.setVelocity(0.0)
+            self.parent_conn.send((twist_error_6D, s_dot))
+            for joint, motor in self.motors.items():
+                scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
+                motor.setVelocity(scalar_joint_velocity)
+
+            # --- DEBUG PRINTING BLOCK ---
+            self.update_joint_angles()
+            _, T_final = self.space_forward_kinematics(self.joint_angles)
+            final_dist = np.linalg.norm(target_tf[:3,3] - T_final[:3,3])
+            print(f'trans_error: {trans_error}')
+            print(f'T_final: {T_final}')
+            print(f"ABS ERROR: {final_dist}mm")
+            # -------------------------
+
+            if t >= self.vel_profile.T:
                 break
-            
 
     def set_joint_angles(self, joint_angle_list: list[float]):
         """
@@ -212,7 +217,6 @@ class UR5Controller(Robot, Kinematics):
                 joint_angle_error = abs(current_angle - joint_angle_list[i])
 
                 if joint_angle_error > Thresholds.IK_ERROR_THRESHOLD:
-                    # print(f'Target not reached. Error: {joint_angle_error}')
                     self.target_reached = False
                     break
                 else:
