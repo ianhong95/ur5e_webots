@@ -11,88 +11,48 @@ class VelocityProfile():
         self.reset()
 
     def reset(self):
-        self.current_speed = 0.0     # m/s
-        self.max_speed_reached = False     
+        self.current_speed = 0.0     # m/s 
         self.time = 0.0
-        self.ramp_time = self.calc_ramp_time()
-        self.t_ramp_up = 0.0
         self.t_cruise = 0.0
         self.T = 0.0
 
-    def ramp_up(self):
-        if not self.max_speed_reached:
-            # v = v0 + (a * t) but capped at a max linear speed
-            self.current_speed = self.current_speed + (M.LINEAR_ACCEL * (IntConstants.TIMESTEP / 1000.0))
-    
-    def calc_ramp_time(self):
-        """
-        The shortest time to go from 0 to max speed or from max speed to 0.
-        """
-        t = M.MAX_LINEAR_SPEED / M.MAX_LINEAR_ACCEL
-
-        return t
-    
     def dist_to_target(self, current_tf: np.ndarray, target_tf: np.ndarray):
         current_coords = current_tf[:3, 3]
         target_coords = target_tf[:3, 3]
 
-        return np.linalg.norm(target_coords - current_coords)
+        norm =  np.linalg.norm(target_coords - current_coords)
 
-    def min_time_to_target(self, dist_to_target: float):
+        return norm
+    
+    def d_crit(self):
         """
-        Calculate the time required to reach the target if you move as fast as possible.
+        The distance required to accelerate from 0 to max speed.
         """
-        term_1 = (dist_to_target / 1000.0) / M.MAX_LINEAR_SPEED
-        term_2 = M.MAX_LINEAR_SPEED / M.MAX_LINEAR_ACCEL
-
-        T = term_1 + term_2
-
-        return T
+        return (M.MAX_LINEAR_SPEED ** 2) / M.MAX_LINEAR_ACCEL
     
-    def ramp_down(self):
-        if self.current_speed > 0:
-            # v = v0 + (a * t)
-            self.current_speed = self.current_speed - (M.MAX_LINEAR_ACCEL * (IntConstants.TIMESTEP / 1000.0))
-    
-    def calc_min_braking_distance(self):
-        return (self.current_speed ** 2) / (2 * M.MAX_LINEAR_ACCEL)
-    
-    def trapezoid(
-            self,
-            current_tf: np.ndarray,
-            target_tf: np.ndarray,
-            joint_velocities: np.ndarray,
-            normalized_joint_velocities: np.ndarray
-    ):
-        d = self.dist_to_target(current_tf, target_tf)
-        T = self.min_time_to_target(d)
-        mbt = self.calc_min_braking_distance()
+    def calc_time_markers(self, T_sb: np.ndarray, T_bd: np.ndarray):
+        self.d_total = self.dist_to_target(T_sb, T_bd) / 1000.0     #  convert to m
 
-        if T > mbt:
-            new_joint_velocities = self.ramp_up(joint_velocities, normalized_joint_velocities)
+        # The distance required to accelerate from 0 to max speed.
+        d_crit = (M.MAX_LINEAR_SPEED ** 2) / M.MAX_LINEAR_ACCEL
+
+        if self.d_total < d_crit:
+            # Triangle case
+            self.v_peak = np.sqrt(self.d_total * M.MAX_LINEAR_ACCEL)
+            self.t_ramp = self.v_peak / M.MAX_LINEAR_ACCEL
+            self.t_cruise = 0.0
         else:
-            new_joint_velocities = self.ramp_down(joint_velocities, normalized_joint_velocities)
+            self.v_peak = M.MAX_LINEAR_SPEED
+            self.t_ramp = M.MAX_LINEAR_SPEED / M.MAX_LINEAR_ACCEL
+            # self.t_cruise = (self.d_total / M.MAX_LINEAR_SPEED) - 2 * self.t_ramp
+            d_ramp_total = (M.MAX_LINEAR_SPEED**2) / M.MAX_LINEAR_ACCEL 
+            d_cruise = self.d_total - d_ramp_total
+            
+            self.t_cruise = d_cruise / self.v_peak
 
-        return new_joint_velocities, self.current_speed
-    
-    def calc_lin_speed(self, current_tf: np.ndarray, target_tf: np.ndarray):
-        d = self.dist_to_target(current_tf, target_tf)
-        T = self.min_time_to_target(d)
-        mbt = self.calc_min_braking_distance()
-
-        if T > mbt:
-            self.ramp_up()
-        else:
-            self.ramp_down()
-
-        return self.current_speed
-    
-    def calc_time_markers(self):
-        self.t_ramp_up = M.MAX_LINEAR_SPEED / M.MAX_LINEAR_ACCEL
-        self.T = (M.MAX_LINEAR_ACCEL + (M.MAX_LINEAR_SPEED ** 2)) / (M.MAX_LINEAR_ACCEL * M.MAX_LINEAR_SPEED)
-        self.t_cruise = self.T - 2 * self.t_ramp_up
-    
-    def calc_s(self, t: int):
+        self.T = (2 * self.t_ramp) + self.t_cruise
+        
+    def calc_s(self, t: float, rot_error, trans_error):
         """
         Calculate s(t) and s_dot(t), the normalized path parameters.
 
@@ -100,30 +60,44 @@ class VelocityProfile():
 
         Returns s and s_dot as scalars from 0 to 1.
         """
+        print(f'time (seconds): {t}')
 
-        # dist_remaining = self.dist_to_target
-
-        # Case 1
-        if t >= 0 and t <= self.t_ramp_up:
-            s = 0.5 * M.MAX_LINEAR_ACCEL * t ** 2
+        # Case 1: Accelerate
+        if t <= self.t_ramp:
+            print(f'Ramping up')
             s_dot = M.MAX_LINEAR_ACCEL * t
-        elif t > self.t_ramp_up and t <= (self.T - self.t_ramp_up):
-            s = M.MAX_LINEAR_SPEED * t - ((M.MAX_LINEAR_SPEED ** 2) / (2 * M.MAX_LINEAR_ACCEL))
-            s_dot = M.MAX_LINEAR_SPEED
-        elif t > (self.T - self.t_ramp_up) and t <= self.T:
-            # Split up terms for readability
-            a = 2 * M.MAX_LINEAR_ACCEL * M.MAX_LINEAR_SPEED * self.T
-            b = 2 * M.MAX_LINEAR_SPEED ** 2
-            c = (M.MAX_LINEAR_ACCEL ** 2) * (t - self.T) ** 2
-            d = 2 * M.MAX_LINEAR_ACCEL
-            s = (a - b - c) / d
 
-            s_dot = -M.MAX_LINEAR_ACCEL * (t - self.T)
+            s = 0.5 * M.MAX_LINEAR_ACCEL * t ** 2
+
+        # Case 2: Cruising
+        elif t <= (self.t_ramp + self.t_cruise) and self.t_cruise > 0:
+            print(f'Cruising')
+            s_dot = self.v_peak
+            
+            s = M.MAX_LINEAR_SPEED * t - ((M.MAX_LINEAR_SPEED**2) / (2 * M.MAX_LINEAR_ACCEL))
+
+        # Case 3: Deceleration
+        elif t <= self.T or trans_error > Thresholds.TRANS_ERROR_THRESHOLD:
+            print(f'Ramping down')
+
+            # Derivative of s(t) from Modern Robotics
+            s_dot = M.MAX_LINEAR_ACCEL * (self.T - t)
+            
+            # Ensure s_dot doesn't go negative due to float rounding
+            s_dot = max(s_dot, 0.0)
+            
+            s_term_1 = 2 * M.MAX_LINEAR_ACCEL * M.MAX_LINEAR_SPEED * self.T
+            s_term_2 = 2 * M.MAX_LINEAR_SPEED ** 2
+            s_term_3 = (M.MAX_LINEAR_ACCEL**2) * (t - self.T)
+            s_term_4 = 2 * M.MAX_LINEAR_ACCEL
+            s = (s_term_1 - s_term_2 - s_term_3) / s_term_4
+
+        # Case 4: Finished
         else:
-            s = 0.0
+            print(f'--- FINISHED t = {t} ---')
+            s = 1
             s_dot = 0.0
-            print(f'Invalid normalized path case.')
+
+        print(f's_dot: {s_dot}')
 
         return s, s_dot
-
-
