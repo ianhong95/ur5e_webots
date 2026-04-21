@@ -17,7 +17,7 @@ class ErrorPlot(mp.Process):
         """
         # Set up the plot GUI
         app = QtWidgets.QApplication([])    # The high level manager
-        multi_plot_window = pg.GraphicsLayoutWidget(show=True, size=(1440, 720), title="UR5e PID Twist Errors")
+        multi_plot_window = pg.GraphicsLayoutWidget(show=True, size=(1080, 640), title="UR5e PID Twist Errors")
 
         w_curves = self.create_multi_line_plot(
             multi_plot_window,
