@@ -30,8 +30,8 @@ class VelocityProfile():
         """
         return (M.MAX_LINEAR_SPEED ** 2) / M.MAX_LINEAR_ACCEL
     
-    def calc_time_markers(self, T_sb: np.ndarray, T_bd: np.ndarray):
-        self.d_total = self.dist_to_target(T_sb, T_bd) / 1000.0     #  convert to m
+    def calc_time_markers(self, T_sb: np.ndarray, T_sd: np.ndarray):
+        self.d_total = self.dist_to_target(T_sb, T_sd)     #  convert to m
 
         # The distance required to accelerate from 0 to max speed.
         d_crit = (M.MAX_LINEAR_SPEED ** 2) / M.MAX_LINEAR_ACCEL
@@ -44,7 +44,6 @@ class VelocityProfile():
         else:
             self.v_peak = M.MAX_LINEAR_SPEED
             self.t_ramp = M.MAX_LINEAR_SPEED / M.MAX_LINEAR_ACCEL
-            # self.t_cruise = (self.d_total / M.MAX_LINEAR_SPEED) - 2 * self.t_ramp
             d_ramp_total = (M.MAX_LINEAR_SPEED**2) / M.MAX_LINEAR_ACCEL 
             d_cruise = self.d_total - d_ramp_total
             
@@ -60,26 +59,21 @@ class VelocityProfile():
 
         Returns s and s_dot as scalars from 0 to 1.
         """
-        print(f'time (seconds): {t}')
 
         # Case 1: Accelerate
         if t <= self.t_ramp:
-            print(f'Ramping up')
             s_dot = M.MAX_LINEAR_ACCEL * t
 
             s = 0.5 * M.MAX_LINEAR_ACCEL * t ** 2
 
         # Case 2: Cruising
         elif t <= (self.t_ramp + self.t_cruise) and self.t_cruise > 0:
-            print(f'Cruising')
             s_dot = self.v_peak
             
             s = M.MAX_LINEAR_SPEED * t - ((M.MAX_LINEAR_SPEED**2) / (2 * M.MAX_LINEAR_ACCEL))
 
         # Case 3: Deceleration
-        elif t <= self.T or trans_error > Thresholds.TRANS_ERROR_THRESHOLD:
-            print(f'Ramping down')
-
+        elif t <= self.T:
             # Derivative of s(t) from Modern Robotics
             s_dot = M.MAX_LINEAR_ACCEL * (self.T - t)
             
@@ -91,13 +85,11 @@ class VelocityProfile():
             s_term_3 = (M.MAX_LINEAR_ACCEL**2) * (t - self.T)
             s_term_4 = 2 * M.MAX_LINEAR_ACCEL
             s = (s_term_1 - s_term_2 - s_term_3) / s_term_4
-
+        
         # Case 4: Finished
         else:
             print(f'--- FINISHED t = {t} ---')
             s = 1
             s_dot = 0.0
-
-        print(f's_dot: {s_dot}')
 
         return s, s_dot
