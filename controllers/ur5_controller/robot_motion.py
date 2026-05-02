@@ -14,7 +14,7 @@ class RobotMotion(UR5Controller, Kinematics):
 
         target_tf = self.rel_trans_xyz(target_coords, current_tf)
 
-        self.go_to_speed(target_tf)
+        self.moveL(target_tf)
 
         return self
     
@@ -27,7 +27,7 @@ class RobotMotion(UR5Controller, Kinematics):
 
         target_tf = self.rel_trans_xyz(target_coords, current_tf)
 
-        self.go_to_speed(target_tf)
+        self.moveL(target_tf)
 
         return self
     
@@ -37,7 +37,7 @@ class RobotMotion(UR5Controller, Kinematics):
 
         target_tf = self.rel_trans_xyz(target_coords, current_tf)
 
-        self.go_to_speed(target_tf)
+        self.moveL(target_tf)
 
         return self
     
@@ -46,7 +46,7 @@ class RobotMotion(UR5Controller, Kinematics):
 
         target_tf = self.rot_x(theta, current_tf)
 
-        self.go_to_speed(target_tf)
+        self.moveL(target_tf)
 
         return self
     
@@ -55,7 +55,7 @@ class RobotMotion(UR5Controller, Kinematics):
 
         target_tf = self.rot_y(theta, current_tf)
 
-        self.go_to_speed(target_tf)
+        self.moveL(target_tf)
 
         return self
     
@@ -64,6 +64,6 @@ class RobotMotion(UR5Controller, Kinematics):
 
         target_tf = self.rot_z(theta, current_tf)
 
-        self.go_to_speed(target_tf)
+        self.moveL(target_tf)
 
         return self
