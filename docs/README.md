@@ -144,16 +144,31 @@ $$
 B_{i} = \begin{bmatrix} Ad_{M^{-1}} \end{bmatrix}S_{i}
 $$
 
-## Forward Kinematics (Body Frame)
-The goal is to obtain a transformation matrix that describes the transformation from the robot's base frame to the end-effector frame. In this case, the transformation will be expressed in the body frame.
+## Forward Kinematics
+The goal is to obtain a transformation matrix that describes the transformation from the robot's base frame to the end-effector frame. 
+
+The forward kinematics can be computed in either the space (global) frame or the body (end-effector) frame. Note that both yield the exact same result; the only difference is how you get there.
+
+Forward kinematics in the space frame starts at the base of the robot and works its way up to the end-effector using the spatial screw axes.
+
+Conversely, forward kinematics in the body frame starts at the end-effector and works its way to the base of the robot using the body screws, which are obtained by applying the adjoint transform to the spatial screws.
+
+To obtain the end-effector's pose using **space** forward kinematics:
+
+1. For each screw matrix, compute the matrix exponential $e^{[S_{i}]\theta_{i}}$.
+2. Start from the base and accummulate the transformations (post-multiply in sequence). We pre-multiply because we want to rotate about the latest joint in the sequence at each step (body transformation rather than space transformation).
+
+    $T_{sb} = e^{[S_{0}]\theta_{0}}e^{[S_{1}]\theta_{1}}...e^{[S_{n}]\theta_{n}}M$
+
+To obtain the end-effector's pose using **body** forward kinematics:
 
 1. Convert each 6D screw axis $B_{i}$ into an se(3) matrix $[B_{i}]$.
-2. For each screw matrix, compute the matrix exponential $e^{[S_{i}]\theta_{i}}$.
-3. Start from the base and accummulate the transformations (post-multiply in sequence). We post-multiply because we want to rotate about the latest joint in the sequence at each step (body transformation rather than space transformation).
+2. For each screw matrix, compute the matrix exponential $e^{[B_{i}]\theta_{i}}$.
+3. Start from the end-effector and accummulate the transformations to the base (post-multiply in sequence). We post-multiply because we want to rotate about the latest joint in the sequence at each step (body transformation rather than space transformation).
     
-    $T_{bs} = Me^{[B_{0}]\theta_{0}}e^{[B_{1}]\theta_{1}}...e^{[B_{n}]\theta_{n}}$
+    $T_{sb} = Me^{[B_{0}]\theta_{0}}e^{[B_{1}]\theta_{1}}...e^{[B_{n}]\theta_{n}}$
 
-The transformation matrix $T_{sb}$ describes the pose of the end-effector in the body frame.
+The transformation matrix $T_{sb}$ describes the pose of the end-effector in the space frame.
 
 ## Jacobian Matrix (Body Frame)
 The Jacobian is a matrix that relates joint velocities to the end-effector velocity. The relationship is as follows:
@@ -233,7 +248,7 @@ The norm of first 3 components of $[V_{b}]$ corresponds to the rotational error 
 
     $\Delta\theta = J^{+}[V_{b}]$
 
-    where $J^{+}$ is the Moore-Penrose pseudo-inverse of the body Jacobian. We can't just take the inverse because the Jacobian is not always square.
+    where $J^{+}$ is the Moore-Penrose pseudo-inverse of the body Jacobian. We can't just take the inverse because the Jacobian is not always square. The pseudo-inverse is a numerical approximation, not an exact inverse.
 
 5. Calculate the new joint angles by adding the angle increments to the current joint angles.
 
