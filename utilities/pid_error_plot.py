@@ -45,7 +45,7 @@ class ErrorPlot(mp.Process):
             'End-Effector Linear Speed',
             1,
             (0, 500),
-            (-1, 1),
+            (0, 300),
             ('Iteration', 'End-Effector Linear Speed (m/s)')
         )
 
