@@ -1,6 +1,5 @@
 import numpy as np
 
-from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning, MotionConstants
 from kinematics import Kinematics
 
 class IK_Solver(Kinematics):
@@ -21,6 +20,10 @@ class IK_Solver(Kinematics):
     ):
         """
         Computes and processes the twist error for one iteration.
+
+        :return rot_error: Norm of rotation error.
+        :return trans_error: Norm of translation error.
+        :return twist_error_6D: 6D vector of twist error (wx, wy, wz, vx, vy, vz).
         """
         twist_error = self.compute_twist_error(T_sb, target_tf)
 
@@ -35,6 +38,14 @@ class IK_Solver(Kinematics):
             twist_error_6D: np.ndarray,
             body_jacobian: np.ndarray
     ):
+        """
+        Computes new joint velocities based on the error relative to the target
+        (the twist) and the body Jacobian.
+
+        :return target_joint_velocities: Raw joint velocities in rad/s.
+        :return normalized_joint_velocities: Scaled joint velocities so they all finish
+        moving at the same time.
+        """
         self.normalized_twist = np.linalg.norm(twist_error_6D)
         target_joint_velocities = np.linalg.pinv(body_jacobian) @ twist_error_6D
         
