@@ -13,23 +13,23 @@ class IntConstants(IntEnum):
 class Thresholds:
     IK_ERROR_THRESHOLD: float = 1e-4
     ROT_ERROR_THRESHOLD: float = 1e-3
-    TRANS_ERROR_THRESHOLD: float = 0.2
+    TRANS_ERROR_THRESHOLD: float = 0.1
     THETA_THRESHOLD: float = 1e-3
     DAMPING_FACTOR: float = 1.0     # For damped pseudoinverse
 
 @dataclass(frozen=True)
 class Tuning:
-    K_P: float = 1.0
+    K_P: float = 1.2
     K_I: float = 0.05
-    K_D: float = 0.0
+    K_D: float = 0.01
 
 @dataclass(frozen=True)
 class MotionConstants:
     DEFAULT_LINEAR_SPEED: float = 200.0    # mm/s
     DEFAULT_ANGULAR_SPEED: float = 1.0   # rad/s
-    MAX_LINEAR_SPEED: float = 0.25   # m/s
+    MAX_LINEAR_SPEED: float = 250   # mm/s
     MAX_JOINT_SPEED: float = 3.14   # rad/s
-    MAX_LINEAR_ACCEL: float = 1.0      # m/s^2
+    MAX_LINEAR_ACCEL: float = 1000      # mm/s^2
     JOINT_ACCEL: float = 0.1    # rad/s^2
 
 @dataclass(frozen=True)
