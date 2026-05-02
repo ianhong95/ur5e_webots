@@ -142,11 +142,11 @@ class UR5Controller(Robot, Kinematics):
             if self.target_reached:
                 return
             
-    def go_to_speed(self, target_tf: np.ndarray):
+    def moveL(self, T_sd: np.ndarray):
         """
         Use inverse velocity kinematics to move the end-effector in a straight line.
         Follows a trapezoidal velocity profile.
-        target_tf is in the body frame (T_bd), and is used as X_end.
+        T_bd is the target TF in the body frame.
         """
         self.pid.reset()
         self.ik_solver.reset()
@@ -154,50 +154,52 @@ class UR5Controller(Robot, Kinematics):
         self.vel_profile.reset()
         self.update_joint_angles()
 
-        # Get starting pose and twist vector.
+        # Get starting pose and initial twist vector.
         _, T_sb = self.space_forward_kinematics(self.joint_angles)
-        rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
 
         # Compute t_ramp_time, t_cruise, and T
-        self.vel_profile.calc_time_markers(T_sb, target_tf)
-
-        # Normalize the twist vector by the total linear distance.
-        # This gives us a unit twist vector that we can scale by the linear speed.
-        unit_twist = twist_error_6D / self.vel_profile.d_total
+        self.vel_profile.calc_time_markers(T_sb, T_sd)
 
         t = 0.0
 
         while self.step(self.TIMESTEP) != -1:
             t += (IntConstants.TIMESTEP / 1000.0)
+
+            # Motion time won't always be a perfect multiple of the timestep
+            if t > self.vel_profile.T:
+                t = self.vel_profile.T
+
             self.update_joint_angles()
-            target_joint_angles = self.joint_angles.copy()
+
+            # Update current pose T_sb and body Jacobian
+            body_jacobian, T_sb = self.ik_solver.compute_body_jacobian(self.joint_angles)
+
+            # Update errors based on updated pose
+            rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, T_sd)
 
             # Calculate s(t) and s_dot(t)
             s, s_dot = self.vel_profile.calc_s(t, rot_error, trans_error)
 
-            # Get the actual twist vector based on the linear velocity
+            # Update the unit twist direction vector.
+            # Normalize the twist vector by the total linear distance.
+            if trans_error > Thresholds.TRANS_ERROR_THRESHOLD: # Avoid division by zero at the very end
+                unit_twist = twist_error_6D / trans_error
+            else:
+                unit_twist = twist_error_6D # Or zero if you're close enough            
+
+            # Scale the unit twist vector by the linear speed to get the speed vector.
             scaled_twist = unit_twist * s_dot
 
-            body_jacobian, T_sb = self.ik_solver.compute_body_jacobian(target_joint_angles)
-            rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, target_tf)
-            
-            # Target velocities.
-            pid_twist_error = self.pid.compute_pid_error(scaled_twist)
-            joint_velocities, _ = self.ik_solver.compute_normalized_joint_velocities(pid_twist_error, body_jacobian)
+            # Target velocities        
+            joint_velocities, _ = self.ik_solver.compute_normalized_joint_velocities(scaled_twist, body_jacobian)
 
+            # This is for plotting
             self.parent_conn.send((twist_error_6D, s_dot))
+
+            # Send velocities to motors
             for joint, motor in self.motors.items():
                 scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
                 motor.setVelocity(scalar_joint_velocity)
-
-            # --- DEBUG PRINTING BLOCK ---
-            self.update_joint_angles()
-            _, T_final = self.space_forward_kinematics(self.joint_angles)
-            final_dist = np.linalg.norm(target_tf[:3,3] - T_final[:3,3])
-            print(f'trans_error: {trans_error}')
-            print(f'T_final: {T_final}')
-            print(f"ABS ERROR: {final_dist}mm")
-            # -------------------------
 
             if t >= self.vel_profile.T:
                 break
