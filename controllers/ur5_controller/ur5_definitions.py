@@ -16,6 +16,7 @@ class Thresholds:
     TRANS_ERROR_THRESHOLD: float = 0.1
     THETA_THRESHOLD: float = 1e-3
     DAMPING_FACTOR: float = 1.0     # For damped pseudoinverse
+    GRIPPER_ERROR_THRESHOLD: float = 0.01
 
 @dataclass(frozen=True)
 class Tuning:
@@ -148,3 +149,49 @@ class Joint(Enum):
     @property
     def screw_axis(self):
         return (np.concatenate([self.axis, self.lin_velocity]))
+    
+
+class GripperInfo(NamedTuple):
+    index: int
+    joint_name: str
+    sensor_name: str
+    max: float
+    min: float
+
+
+class Gripper(Enum):
+    LEFT_FINGER = GripperInfo(
+        0,
+        'ROBOTIQ 2F-85 Gripper::left finger joint',
+        'ROBOTIQ 2F-85 Gripper left finger joint sensor',
+        0.8,
+        0.25
+    )
+
+    RIGHT_FINGER = GripperInfo(
+        1,
+        'ROBOTIQ 2F-85 Gripper::right finger joint',
+        'ROBOTIQ 2F-85 Gripper right finger sensor',
+        0.8,
+        0.25
+    )
+
+    @property
+    def idx(self):
+        return self.value.index
+    
+    @property
+    def name(self):
+        return self.value.joint_name
+    
+    @property
+    def sensor(self):
+        return self.value.sensor_name
+    
+    @property
+    def max(self):
+        return self.value.max
+    
+    @property
+    def min(self):
+        return self.value.min

@@ -8,7 +8,7 @@ import numpy as np
 import time
 import multiprocessing as mp
 
-from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning, MotionConstants
+from ur5_definitions import Joint, Gripper, IntConstants, Thresholds
 from kinematics import Kinematics
 from utilities.pid_error_plot import ErrorPlot
 from ik_solver_newton_raphson import IK_Solver
@@ -46,6 +46,7 @@ class UR5Controller(Robot, Kinematics):
         print("Connecting to Webots...")
 
         self._init_joints_and_sensors()
+        self._init_gripper()
         self.ik_solver = IK_Solver()
         self.pid = PID_Controller()
         self.vel_profile = VelocityProfile()
@@ -242,3 +243,44 @@ class UR5Controller(Robot, Kinematics):
         for joint, motor in self.motors.items():
             motor.setPosition(float('inf'))
             motor.setVelocity(joint_velocity_list[joint.idx])
+
+    # ================
+    # GRIPPER CONTROL
+    # ================
+
+    def _init_gripper(self):
+        self.left_finger = self.getDevice(Gripper.LEFT_FINGER.name)
+        self.getDevice(Gripper.LEFT_FINGER.sensor).enable(self.TIMESTEP)
+        self.left_finger_sensor = self.getDevice(Gripper.LEFT_FINGER.sensor)
+        self.right_finger = self.getDevice(Gripper.RIGHT_FINGER.name)
+        self.getDevice(Gripper.RIGHT_FINGER.sensor).enable(self.TIMESTEP)
+        self.right_finger_sensor = self.getDevice(Gripper.RIGHT_FINGER.sensor)
+
+    def set_gripper_continuous(self, position: float):
+        """
+        Non-blocking gripper control.
+
+        0.0 = open
+        1.0 = close
+        """
+
+        self.left_finger.setPosition(position)
+        self.right_finger.setPosition(position)
+
+    def set_gripper(self, position: float):
+        """
+        Blocking gripper control to ensure it's in the right position before
+        proceeding to the next robot motion.
+
+        0.0 = open
+        1.0 = close
+        """
+
+        self.left_finger.setPosition(position)
+        self.right_finger.setPosition(position)
+
+        while self.step(self.TIMESTEP) != -1:
+            gripper_error = abs(self.left_finger_sensor.getValue() - position)
+            print(f'gripper_error: {gripper_error}')
+            if gripper_error < Thresholds.GRIPPER_ERROR_THRESHOLD:
+                break
