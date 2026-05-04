@@ -8,12 +8,12 @@ import numpy as np
 import time
 import multiprocessing as mp
 
-from ur5_definitions import Joint, Gripper, IntConstants, Thresholds
-from kinematics import Kinematics
+from controllers.ur5_controller.ur5_definitions import Joint, Gripper, IntConstants, Thresholds
+from controllers.ur5_controller.kinematics import Kinematics
 from utilities.pid_error_plot import ErrorPlot
-from ik_solver_newton_raphson import IK_Solver
-from pid_helper import PID_Controller
-from trapezoidal_velocity_profile import VelocityProfile
+from controllers.ur5_controller.ik_solver_newton_raphson import IK_Solver
+from controllers.ur5_controller.pid_helper import PID_Controller
+from controllers.ur5_controller.trapezoidal_velocity_profile import VelocityProfile
 
 class UR5Controller(Robot, Kinematics):
 
@@ -33,11 +33,47 @@ class UR5Controller(Robot, Kinematics):
             [0.000, 0.000, 0.000, 1.000]
         ]),
         'TEST2': np.array([
-            [1.000, 0.000, 0.000, 491.918],
+            [1.000, 0.000, 0.000, 341.918],
             [0.000, -1.000, 0.000, 133.000],
-            [0.000, 0.000, -1.000, 225.027],
+            [0.000, 0.000, -1.000, 325.027],
             [0.000, 0.000, 0.000, 1.000]
-        ])
+        ]),
+        'TEST3': np.array([
+            [1.000, 0.000, 0.000, 341.918],
+            [0.000, -1.000, 0.000, -67.000],
+            [0.000, 0.000, -1.000, 325.027],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
+        'TEST4': np.array([
+            [1.000, 0.000, 0.000, 491.918],
+            [0.000, -1.000, 0.000, -67.000],
+            [0.000, 0.000, -1.000, 325.027],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
+        'TEST5': np.array([
+            [1.000, 0.000, 0.000, 491.918],
+            [0.000, -1.000, 0.000, 333.000],
+            [0.000, 0.000, -1.000, 325.027],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
+        'TEST6': np.array([
+            [1.000, 0.000, 0.000, 341.918],
+            [0.000, -1.000, 0.000, 333.000],
+            [0.000, 0.000, -1.000, 325.027],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
+        'TEST7': np.array([
+            [1.000, 0.000, 0.000, 341.918],
+            [0.000, -1.000, 0.000, 333.000],
+            [0.000, 0.000, -1.000, 175.027],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
+        'TEST8': np.array([
+            [1.000, 0.000, 0.000, 341.918],
+            [0.000, -1.000, 0.000, 333.000],
+            [0.000, 0.000, -1.000, 325.027],
+            [0.000, 0.000, 0.000, 1.000]
+        ]),
     }
 
     def __init__(self):
