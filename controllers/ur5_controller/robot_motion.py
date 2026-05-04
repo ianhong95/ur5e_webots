@@ -1,7 +1,6 @@
 import numpy as np
-
-from ur5_controller import UR5Controller
-from kinematics import Kinematics
+from controllers.ur5_controller.ur5_controller import UR5Controller
+from controllers.ur5_controller.kinematics import Kinematics
 
 class RobotMotion(UR5Controller, Kinematics):
     def __init__(self):

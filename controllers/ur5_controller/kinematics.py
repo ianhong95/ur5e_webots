@@ -3,7 +3,9 @@ import json
 
 import numpy as np
 
-from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, PositionConstants
+from controllers.ur5_controller.ur5_definitions import (
+    Joint, IntConstants, Thresholds, PhysicalParams, PositionConstants
+)
 
 
 class Kinematics():

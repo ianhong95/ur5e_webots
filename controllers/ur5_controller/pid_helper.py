@@ -1,5 +1,7 @@
-from kinematics import Kinematics
-from ur5_definitions import Thresholds, IntConstants, PhysicalParams, Tuning, MotionConstants
+from controllers.ur5_controller.kinematics import Kinematics
+from controllers.ur5_controller.ur5_definitions import (
+    Thresholds, IntConstants, PhysicalParams, Tuning, MotionConstants
+)
 
 import numpy as np
 

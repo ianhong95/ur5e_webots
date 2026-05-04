@@ -1,6 +1,6 @@
 import numpy as np
 
-from kinematics import Kinematics
+from controllers.ur5_controller.kinematics import Kinematics
 
 class IK_Solver(Kinematics):
     def __init__(self):

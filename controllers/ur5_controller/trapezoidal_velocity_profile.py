@@ -1,7 +1,9 @@
 import numpy as np
-from ur5_definitions import Joint, IntConstants, Thresholds, PhysicalParams, Tuning
-from ur5_definitions import MotionConstants as M
-from pid_helper import PID_Controller as pid
+from controllers.ur5_controller.ur5_definitions import (
+    Joint, IntConstants, Thresholds, PhysicalParams, Tuning
+)
+from controllers.ur5_controller.ur5_definitions import MotionConstants as M
+from controllers.ur5_controller.pid_helper import PID_Controller as pid
 
 class VelocityProfile():
     """
