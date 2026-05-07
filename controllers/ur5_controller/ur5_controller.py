@@ -2,7 +2,9 @@ import sys, os
 
 os.environ['WEBOTS_ROBOT_NAME'] = 'UR5e'
 
-from controller import Robot, DistanceSensor, Motor, PositionSensor
+from controller import (
+    Robot, DistanceSensor, Motor, PositionSensor, Keyboard
+)
 from math import pi
 import numpy as np
 import time
@@ -29,7 +31,6 @@ class UR5Controller(Robot, Kinematics):
         self.ik_solver = IK_Solver()
         self.pid = PID_Controller()
         self.vel_profile = VelocityProfile()
-        self.current_speed = 0.0
 
         self.target_reached = False
 
@@ -121,7 +122,7 @@ class UR5Controller(Robot, Kinematics):
             if self.target_reached:
                 return
             
-    def moveL(self, T_sd: np.ndarray):
+    def moveL(self, T_sd: np.ndarray, T_sb: np.ndarray = None):
         """
         Use inverse velocity kinematics to move the end-effector in a straight line.
         Follows a trapezoidal velocity profile.
@@ -134,7 +135,8 @@ class UR5Controller(Robot, Kinematics):
         self.update_joint_angles()
 
         # Get starting pose and initial twist vector.
-        _, T_sb = self.space_forward_kinematics(self.joint_angles)
+        if T_sb is None:
+            _, T_sb = self.space_forward_kinematics(self.joint_angles)
 
         # Compute t_ramp_time, t_cruise, and T
         self.vel_profile.calc_time_markers(T_sb, T_sd)
