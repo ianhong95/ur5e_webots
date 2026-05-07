@@ -6,13 +6,13 @@ class RobotMotion(UR5Controller, Kinematics):
     def __init__(self):
         super().__init__()
 
-    def move_x(self, x_target: float):
+    def move_x(self, x_target: float, start_pose: np.ndarray = None):
         target_coords = (x_target, 0, 0)
         _, current_tf = self.body_forward_kinematics(self.joint_angles)
 
         target_tf = self.rel_trans_xyz(target_coords, current_tf)
 
-        self.moveL(target_tf)
+        self.moveL(target_tf, start_pose)
 
         return self
     
