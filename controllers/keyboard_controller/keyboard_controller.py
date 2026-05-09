@@ -8,6 +8,7 @@ from controllers.ur5_controller.ur5_definitions import (
     MotionConstants as M
 )
 from controllers.keyboard_controller.kb_controller_defs import KeyMap, MoveStates, Constants
+from demo_scripts.test_positions import Positions
 
 class KeyboardController(RobotMotion):
     def __init__(self):
@@ -18,6 +19,10 @@ class KeyboardController(RobotMotion):
         self.move_state = MoveStates.STOPPED
         self.speed = 0.0    # mm/s
         self.prev_keys = set()
+
+        # This needs to be set before the first timestep. When the first timestep
+        # hits, then the arm drops a little due to gravity and forces the elbow-down solution.
+        self.go_to_home()
 
     def get_keys(self):
         key = self.kb.getKey()
@@ -89,3 +94,12 @@ class KeyboardController(RobotMotion):
 
     def key_released(self):
         self.move_state = MoveStates.STOPPED
+
+    def go_to_home(self):
+        self.moveL(Positions.HOME)
+
+        while self.step(self.TIMESTEP) != -1:
+            if not self.target_reached:
+                self.moveL(Positions.HOME)
+            elif self.target_reached:
+                print(f'Moved to home')
