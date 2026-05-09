@@ -14,20 +14,18 @@ from demo_scripts.test_positions import Positions
 
 def run():
     controller = KeyboardController()
-    controller.moveL(Positions.HOME)
-    print(f'Moved to home')
 
-    while controller.step(controller.TIMESTEP) != -1:
-        new_keys, held_keys, released_keys = controller.get_state(controller.prev_keys)
+    # new_keys, held_keys, released_keys = controller.get_state(controller.prev_keys)
 
-        if new_keys:
-            for key in new_keys:
-                if key in held_keys:
-                    print(f'key_held! {key}')
-                    controller.key_held(key)
-                elif key in released_keys:
-                    print(f'key_released! {key}')
-                    controller.key_released()
-                else:
-                    controller.key_pressed(key)
-                    print(f'key pressed: {key}')
+    # if new_keys:
+    #     for key in new_keys:
+    #         if key in held_keys:
+    #             print(f'key_held! {key}')
+    #             controller.key_held(key)
+    #         elif key in released_keys:
+    #             print(f'key_released! {key}')
+    #             controller.key_released()
+    #         else:
+    #             controller.key_pressed(key)
+    #             print(f'key pressed: {key}')
+    #             controller.moving = False
