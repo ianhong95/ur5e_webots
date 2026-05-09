@@ -33,6 +33,7 @@ class UR5Controller(Robot, Kinematics):
         self.vel_profile = VelocityProfile()
 
         self.target_reached = False
+        self.moving = False
 
         # We need to step ahead one timestep after initializing everything.
         self.step(self.TIMESTEP)
@@ -128,62 +129,83 @@ class UR5Controller(Robot, Kinematics):
         Follows a trapezoidal velocity profile.
         T_bd is the target TF in the body frame.
         """
-        self.pid.reset()
-        self.ik_solver.reset()
-        self.reset_motor_speeds()
-        self.vel_profile.reset()
-        self.update_joint_angles()
 
-        # Get starting pose and initial twist vector.
-        if T_sb is None:
-            _, T_sb = self.space_forward_kinematics(self.joint_angles)
+        """
+        I think the problem is that self.vel_profile.T is stretching so the last check
+        never executes and the motor speeds are never set to 0.
 
-        # Compute t_ramp_time, t_cruise, and T
-        self.vel_profile.calc_time_markers(T_sb, T_sd)
+        Does this happen even if I'm just using moveL and not doing any key stuff?
+        """
 
-        t = 0.0
+        self.T_sd = T_sd
 
-        while self.step(self.TIMESTEP) != -1:
-            t += (IntConstants.TIMESTEP / 1000.0)
-
-            # Motion time won't always be a perfect multiple of the timestep
-            if t > self.vel_profile.T:
-                t = self.vel_profile.T
-
+        if not self.moving:
+            self.pid.reset()
+            self.ik_solver.reset()
+            self.reset_motor_speeds()
+            self.vel_profile.reset()
             self.update_joint_angles()
 
-            # Update current pose T_sb and body Jacobian
-            body_jacobian, T_sb = self.ik_solver.compute_body_jacobian(self.joint_angles)
+            self.T_sb = T_sb
 
-            # Update errors based on updated pose
-            rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(T_sb, T_sd)
+            # Get starting pose and initial twist vector.
+            if self.T_sb is None:
+                _, self.T_sb = self.space_forward_kinematics(self.joint_angles)
+                print(f'T_sb updated!')
 
-            # Calculate s(t) and s_dot(t)
-            s, s_dot = self.vel_profile.calc_s(t, rot_error, trans_error)
+            # Compute t_ramp_time, t_cruise, and T
+            self.vel_profile.calc_time_markers(self.T_sb, self.T_sd)               
 
-            # Update the unit twist direction vector.
-            # Normalize the twist vector by the total linear distance.
-            if trans_error > Thresholds.TRANS_ERROR_THRESHOLD: # Avoid division by zero at the very end
-                unit_twist = twist_error_6D / trans_error
-            else:
-                unit_twist = twist_error_6D # Or zero if you're close enough            
+            self.t = 0.0
 
-            # Scale the unit twist vector by the linear speed to get the speed vector.
-            scaled_twist = unit_twist * s_dot
+            self.moving = True
+            print(f'motion started')
 
-            # Target velocities        
-            joint_velocities, _ = self.ik_solver.compute_normalized_joint_velocities(scaled_twist, body_jacobian)
+        # while self.step(self.TIMESTEP) != -1:
+        self.t += (IntConstants.TIMESTEP / 1000.0)
 
-            # This is for plotting
-            self.parent_conn.send((twist_error_6D, s_dot))
+        # Motion time won't always be a perfect multiple of the timestep
+        if self.t > self.vel_profile.T:
+            self.t = self.vel_profile.T
 
-            # Send velocities to motors
+        self.update_joint_angles()
+
+        # Update current pose T_sb and body Jacobian
+        body_jacobian, self.T_sb = self.ik_solver.compute_body_jacobian(self.joint_angles)
+
+        # Update errors based on updated pose
+        rot_error, trans_error, twist_error_6D = self.ik_solver.compute_twist_errors(self.T_sb, self.T_sd)
+
+        # Calculate s(t) and s_dot(t)
+        s, s_dot = self.vel_profile.calc_s(self.t, rot_error, trans_error)
+
+        # Update the unit twist direction vector.
+        # Normalize the twist vector by the total linear distance.
+        if trans_error > Thresholds.TRANS_ERROR_THRESHOLD: # Avoid division by zero at the very end
+            unit_twist = twist_error_6D / trans_error
+        else:
+            unit_twist = twist_error_6D # Or zero if you're close enough            
+
+        # Scale the unit twist vector by the linear speed to get the speed vector.
+        scaled_twist = unit_twist * s_dot
+
+        # Target velocities        
+        joint_velocities, _ = self.ik_solver.compute_normalized_joint_velocities(scaled_twist, body_jacobian)
+
+        # This is for plotting
+        self.parent_conn.send((twist_error_6D, s_dot))
+
+        # Send velocities to motors
+        for joint, motor in self.motors.items():
+            scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
+            motor.setVelocity(scalar_joint_velocity)
+
+        if self.t >= self.vel_profile.T:
             for joint, motor in self.motors.items():
-                scalar_joint_velocity =  joint_velocities[joint.idx].reshape(())
-                motor.setVelocity(scalar_joint_velocity)
-
-            if t >= self.vel_profile.T:
-                break
+                motor.setVelocity(0.0)
+            self.moving = False
+            self.target_reached = True
+        
 
     def set_joint_angles(self, joint_angle_list: list[float]):
         """
