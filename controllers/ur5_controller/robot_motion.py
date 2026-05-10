@@ -3,6 +3,12 @@ from controllers.ur5_controller.ur5_controller import UR5Controller
 from controllers.ur5_controller.kinematics import Kinematics
 
 class RobotMotion(UR5Controller, Kinematics):
+    """
+    Math layer for computing targets based on coordinates and angles.
+
+    Each method runs for one timestep.
+    """
+
     def __init__(self):
         super().__init__()
 
