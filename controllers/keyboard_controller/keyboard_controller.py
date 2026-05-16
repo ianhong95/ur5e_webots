@@ -14,7 +14,7 @@ class KeyboardController(RobotMotion):
     def __init__(self):
         super().__init__()
         self.kb = Keyboard()
-        self.kb.enable(self.TIMESTEP)
+        self.kb.enable(self.controller.TIMESTEP)
 
         self.move_state = MoveStates.STOPPED
         self.speed = 0.0    # mm/s
@@ -22,7 +22,7 @@ class KeyboardController(RobotMotion):
 
         # This needs to be set before the first timestep. When the first timestep
         # hits, then the arm drops a little due to gravity and forces the elbow-down solution.
-        self.go_to_home()
+        # self.go_to_home()
 
     def get_keys(self):
         key = self.kb.getKey()
@@ -96,10 +96,10 @@ class KeyboardController(RobotMotion):
         self.move_state = MoveStates.STOPPED
 
     def go_to_home(self):
-        self.moveL(Positions.HOME)
+        self.controller.moveL(Positions.HOME)
 
-        while self.step(self.TIMESTEP) != -1:
+        while self.step(self.controller.TIMESTEP) != -1:
             if not self.target_reached:
-                self.moveL(Positions.HOME)
+                self.controller.moveL(Positions.HOME)
             elif self.target_reached:
                 print(f'Moved to home')
