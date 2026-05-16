@@ -20,10 +20,6 @@ class KeyboardController(RobotMotion):
         self.speed = 0.0    # mm/s
         self.prev_keys = set()
 
-        # This needs to be set before the first timestep. When the first timestep
-        # hits, then the arm drops a little due to gravity and forces the elbow-down solution.
-        # self.go_to_home()
-
     def get_keys(self):
         key = self.kb.getKey()
 
