@@ -13,12 +13,22 @@ from demo_scripts.test_positions import Positions
 
 
 def run():
-    c = KeyboardController()
+    kb = KeyboardController()
 
     DIST = 150
 
-    while c.step(c.TIMESTEP) != -1:
-        c.move_x(DIST)
+    kb.moveL(Positions.HOME)
+
+    while kb.controller.step(kb.controller.TIMESTEP) != -1:
+        kb.update_state(kb.controller.TIMESTEP / 1000.0)
+        if not kb.is_moving:
+            break
+
+    kb.move_x(150)
+    while kb.controller.step(kb.controller.TIMESTEP) != -1:
+        kb.update_state(kb.controller.TIMESTEP / 1000.0)
+        if not kb.is_moving:
+            break    
 
     # new_keys, held_keys, released_keys = controller.get_state(controller.prev_keys)
 
