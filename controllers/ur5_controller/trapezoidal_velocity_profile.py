@@ -14,7 +14,6 @@ class VelocityProfile():
 
     def reset(self):
         self.current_speed = 0.0     # m/s 
-        self.time = 0.0
         self.t_cruise = 0.0
         self.T = 0.0
 
@@ -52,8 +51,10 @@ class VelocityProfile():
             self.t_cruise = d_cruise / self.v_peak
 
         self.T = (2 * self.t_ramp) + self.t_cruise
+
+        return self.t_ramp, self.t_cruise, self.T
         
-    def calc_s(self, t: float, rot_error, trans_error):
+    def calc_s(self, t: float):
         """
         Calculate s(t) and s_dot(t), the normalized path parameters.
 
