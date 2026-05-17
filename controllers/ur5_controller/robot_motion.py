@@ -42,23 +42,20 @@ class RobotMotion():
         # Get the starting pose. This does not change.
         self.controller.update_joint_angles()
         _, self.T_sb_start = self.controller.space_forward_kinematics(self.controller.joint_angles)
-        
-        self.T_sd = T_sd
 
-        # 2. Reset the Motion Timer
+        self.T_sd = T_sd
         self.t_elapsed = 0.0
 
-        # 3. Calculate Velocity Profile Markers
+        # Calculate velocity profile markers
         # This determines T, t_ramp, and max_velocity based on distance
         self.compute_vel_path(self.T_sb_start, self.T_sd)
 
-        # 4. Reset helper states
+        # Reset states
         self.controller.reset_motor_speeds()
         self.target_reached = False
         
-        # 5. Flip the switch to let the 'update' method take over
+        # Set motion flag to True
         self.is_moving = True
-        print(f"Motion initialized. Total duration: {self.vel_profile.T:.2f}s")
 
     def compute_target(self, target_coords:tuple):
         """
@@ -68,8 +65,6 @@ class RobotMotion():
         self.controller.update_joint_angles()
         _, current_tf = self.controller.body_forward_kinematics(self.controller.joint_angles) # T_sb
         target_tf = self.controller.rel_trans_xyz(target_coords, current_tf)   # T_sd
-
-        _, _, T = self.vel_profile.calc_time_markers(current_tf, target_tf)
 
         return target_tf
     
