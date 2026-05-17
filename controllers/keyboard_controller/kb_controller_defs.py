@@ -7,6 +7,7 @@ class KeyMap:
     DOWN = ord('F')
     CLOSE = ord('J')
     OPEN = ord('K')
+    HOME = ord('H')
 
 class MoveStates:
     STOPPED = 0
