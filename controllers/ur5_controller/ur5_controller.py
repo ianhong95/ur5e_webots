@@ -166,18 +166,7 @@ class UR5Controller(Robot, Kinematics):
         self.getDevice(Gripper.RIGHT_FINGER.sensor).enable(self.TIMESTEP)
         self.right_finger_sensor = self.getDevice(Gripper.RIGHT_FINGER.sensor)
 
-    def set_gripper_continuous(self, position: float):
-        """
-        Non-blocking gripper control.
-
-        0.0 = open
-        1.0 = close
-        """
-
-        self.left_finger.setPosition(position)
-        self.right_finger.setPosition(position)
-
-    def actuate_gripper(self, position: float):
+    def actuate_gripper(self, target_pos: float):
         """
         Blocking gripper control to ensure it's in the right position before
         proceeding to the next robot motion.
@@ -186,9 +175,5 @@ class UR5Controller(Robot, Kinematics):
         1.0 = close
         """
 
-        self.left_finger.setPosition(position)
-        self.right_finger.setPosition(position)
-
-        if gripper_error > Thresholds.GRIPPER_ERROR_THRESHOLD:
-            gripper_error = abs(self.left_finger_sensor.getValue() - position)
-        
+        self.left_finger.setPosition(target_pos)
+        self.right_finger.setPosition(target_pos)        
