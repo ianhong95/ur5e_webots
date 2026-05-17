@@ -71,63 +71,33 @@ class RobotMotion():
         _, _, T = self.vel_profile.calc_time_markers(current_tf, target_tf)
 
         return target_tf
-
-    def move_x(self, x_target: float):
-        self.is_moving = True
-    
-        target_coords = (x_target, 0, 0)
-        target_tf = self.compute_target(target_coords)
-        self.moveL(target_tf)
-
-        return self
-    
-    def move_y(self, y_target: float):
-        self.is_moving = True
-
-        target_coords = (0, y_target, 0)
-        target_tf = self.compute_target(target_coords)
-        self.moveL(target_tf)
-
-        return self
-    
-    def move_z(self, z_target: float):
-        self.is_moving = True
-
-        target_coords = (0, 0, z_target)
-        target_tf = self.compute_target(target_coords)
-        self.moveL(target_tf)
-
-        return self
     
     def rot_x(self, theta: float):
+        """TODO: Reimplement or remove this"""
         self.is_moving = True
 
         _, current_tf = self.body_forward_kinematics(self.joint_angles)
-
         target_tf = self.rot_x(theta, current_tf)
-
         self.moveL(target_tf)
 
         return self
     
     def rot_y(self, theta: float):
+        """TODO: Reimplement or remove this"""
         self.is_moving = True
 
         _, current_tf = self.body_forward_kinematics(self.joint_angles)
-
         target_tf = self.rot_y(theta, current_tf)
-
         self.moveL(target_tf)
 
         return self
     
     def rot_z(self, theta: float):
+        """TODO: Reimplement or remove this"""
         self.is_moving = True
 
         _, current_tf = self.body_forward_kinematics(self.joint_angles)
-
         target_tf = self.rot_z(theta, current_tf)
-
         self.moveL(target_tf)
 
         return self
@@ -149,6 +119,9 @@ class RobotMotion():
         self.add_to_queue(lambda T_sb_start: target_tf)
 
         return self
+    
+    def set_gripper(self, position: float):
+        self.add_to_queue(lambda foo: position)
     
     # ==========
     # KINEMATICS
