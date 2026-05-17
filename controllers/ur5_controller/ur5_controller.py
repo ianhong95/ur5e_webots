@@ -177,7 +177,7 @@ class UR5Controller(Robot, Kinematics):
         self.left_finger.setPosition(position)
         self.right_finger.setPosition(position)
 
-    def set_gripper(self, position: float):
+    def actuate_gripper(self, position: float):
         """
         Blocking gripper control to ensure it's in the right position before
         proceeding to the next robot motion.
@@ -189,8 +189,6 @@ class UR5Controller(Robot, Kinematics):
         self.left_finger.setPosition(position)
         self.right_finger.setPosition(position)
 
-        while self.step(self.TIMESTEP) != -1:
+        if gripper_error > Thresholds.GRIPPER_ERROR_THRESHOLD:
             gripper_error = abs(self.left_finger_sensor.getValue() - position)
-            print(f'gripper_error: {gripper_error}')
-            if gripper_error < Thresholds.GRIPPER_ERROR_THRESHOLD:
-                break
+        
