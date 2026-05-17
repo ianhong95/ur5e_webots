@@ -81,9 +81,9 @@ class KeyboardController(RobotMotion):
             case (KeyMap.DOWN):
                 self.move_rel(z=-10.0)
             case (KeyMap.CLOSE):
-                self.controller.set_gripper(1.0)
+                self.set_gripper(0.8)
             case (KeyMap.OPEN):
-                self.controller.set_gripper(0.0)
+                self.set_gripper(0.2)
             case (KeyMap.HOME):
                 self.move_abs(Positions.HOME)
 
@@ -107,9 +107,9 @@ class KeyboardController(RobotMotion):
             case (KeyMap.DOWN):
                 self.move_rel(z=-10.0)
             case (KeyMap.CLOSE):
-                self.controller.set_gripper(1.0)
+                self.set_gripper(0.8)
             case (KeyMap.OPEN):
-                self.controller.set_gripper(0.0)
+                self.set_gripper(0.2)
 
     def key_released(self):
         self.is_moving = False
