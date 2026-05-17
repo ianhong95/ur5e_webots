@@ -5,6 +5,7 @@ from controllers.ur5_controller.trapezoidal_velocity_profile import VelocityProf
 from controllers.ur5_controller.ur5_definitions import (
     Joint, Gripper, IntConstants, Thresholds
 )
+from controllers.ur5_controller.robot_commands import *
 
 from collections import deque
 
@@ -18,9 +19,9 @@ class RobotMotion():
     def __init__(self):
         self.controller = UR5Controller()
         self.vel_profile = VelocityProfile()
-
         self.queue = deque()
 
+        self.target_gripper_position = None
         self.reset()
 
     # =======
@@ -105,23 +106,20 @@ class RobotMotion():
     def move_rel(self, x=0.0, y=0.0, z=0.0):
         """Queues a relative Cartesian translation step (inputs in mm)."""
         self.controller.update_joint_angles()
-
-        move_vector = np.array([x, y, z])
-
-        self.add_to_queue(lambda T_sb_start: self.controller.rel_trans_xyz(move_vector, T_sb_start))
+        self.queue.append(MoveRelCmd(x, y, z))
 
         return self
     
     def move_abs(self, target_tf: np.ndarray):
         """Queues a step to move to an absolute target."""
         self.controller.update_joint_angles()
-
-        self.add_to_queue(lambda T_sb_start: target_tf)
+        self.queue.append(MoveAbsCommand(target_tf))
 
         return self
     
     def set_gripper(self, position: float):
-        self.add_to_queue(lambda foo: position)
+        self.queue.append(GripperCmd(position))
+        return self
     
     # ==========
     # KINEMATICS
@@ -144,13 +142,13 @@ class RobotMotion():
 
         if not self.is_moving and self.queue:
             # Removes and returns an element from the left end
-            next_target = self.queue.popleft()
+            command = self.queue.popleft()
             
             # Determine current position
             _, T_sb_start = self.controller.space_forward_kinematics(self.controller.joint_angles)
 
-            # RUN the lambda function
-            self.T_sd = next_target(T_sb_start)
+            # RUN the queued function
+            command.execute(self, T_sb_start)
 
             self.t_elapsed = 0.0
             self.compute_vel_path(T_sb_start, self.T_sd)
@@ -180,10 +178,10 @@ class RobotMotion():
             joint_velocities = self.controller.calculate_velocity_step(scaled_twist)
             self.controller.set_joint_velocities(joint_velocities)
 
-            # gripper_error = abs(self.controller.left_finger_sensor.getValue() - position)
-            gripper_error = 0.0
-
-            position = 0
+            if self.target_gripper_position:
+                gripper_error = abs(self.controller.left_finger_sensor.getValue() - self.target_gripper_position)
+            else:
+                gripper_error = 0.0
 
             if (self.t_elapsed >= self.vel_profile.T) and (gripper_error < Thresholds.GRIPPER_ERROR_THRESHOLD):
                 self.reset()
@@ -215,8 +213,8 @@ class RobotMotion():
         _, T_sb_start = self.controller.space_forward_kinematics(self.controller.joint_angles)
 
         # Pop the first movement and resolve its target matrix
-        next_target = self.queue.popleft()
-        self.T_sd = next_target(T_sb_start)
+        command = self.queue.popleft()
+        command.execute(self, T_sb_start)
 
         # Initialize path and profile
         self.compute_vel_path(T_sb_start, self.T_sd)
