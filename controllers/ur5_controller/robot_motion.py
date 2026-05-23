@@ -6,7 +6,9 @@ from controllers.ur5_controller.ur5_definitions import (
     Joint, Gripper, IntConstants, Thresholds
 )
 from controllers.ur5_controller.robot_commands import *
+from utilities.pid_error_plot import ErrorPlot
 
+import multiprocessing as mp
 from collections import deque
 
 class RobotMotion():
@@ -20,6 +22,10 @@ class RobotMotion():
         self.controller = UR5Controller()
         self.vel_profile = VelocityProfile()
         self.queue = deque()
+
+        self.parent_conn, child_conn = mp.Pipe()
+        self.error_plot = ErrorPlot(child_conn)
+        # self.error_plot.start()
 
         self.target_gripper_position = None
         self.reset()
