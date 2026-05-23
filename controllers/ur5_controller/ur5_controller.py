@@ -8,11 +8,9 @@ from controller import (
 from math import pi
 import numpy as np
 import time
-import multiprocessing as mp
 
 from controllers.ur5_controller.ur5_definitions import Joint, Gripper, IntConstants, Thresholds
 from controllers.ur5_controller.kinematics import Kinematics
-from utilities.pid_error_plot import ErrorPlot
 from controllers.ur5_controller.ik_solver_newton_raphson import IK_Solver
 from controllers.ur5_controller.pid_helper import PID_Controller
 from controllers.ur5_controller.trapezoidal_velocity_profile import VelocityProfile
@@ -41,11 +39,11 @@ class UR5Controller(Robot, Kinematics):
         self.update_joint_angles()
         self.step(self.TIMESTEP)
 
-        self.parent_conn, child_conn = mp.Pipe()
-        self.error_plot = ErrorPlot(child_conn)
-        self.error_plot.start()
-
         time.sleep(1)
+
+    # =========
+    # SETUP
+    # =========
 
     def _list_devices(self):
         num_devices = self.getNumberOfDevices()
@@ -72,6 +70,10 @@ class UR5Controller(Robot, Kinematics):
 
         print(f'Sensors enabled.')
 
+    # ==============
+    # MANUAL METHODS
+    # ==============
+
     def reset_motor_speeds(self):
         for motor in self.motors.values():
             motor.setPosition(float('inf'))
@@ -87,55 +89,15 @@ class UR5Controller(Robot, Kinematics):
         for joint, motor in self.motors.items():
             motor.setPosition(joint_angles[joint.idx])
 
+    # ==================
+    # MAIN LOOP METHODS
+    # ==================
+
     def update_joint_angles(self):
         for joint, sensor in self.sensors.items():
             self.joint_angles[joint.idx] = sensor.getValue()
 
         return self.joint_angles
-    
-    # =================
-    # FEEDBACK METHODS
-    # =================
-    
-
-    def go_to_position(self, target_tf: np.ndarray, linear_speed: float = 200.0, angular_speed: float = 1.0):
-        """
-        Use inverse kinematics to move to a target TF.
-
-        Linear speed is 100 mm/s by default.
-        """
-        self.update_joint_angles()
-        self.step(self.TIMESTEP)
-
-        target_joint_angles = self.joint_angles.copy()
-        _, initial_pose = self.body_forward_kinematics(self.joint_angles)
-
-        # Solve inverse kinematics numerically using Newton-Raphson
-        for i in range(IntConstants.MAX_ITERATIONS):
-
-            # Set the initial guess to the "target_joint_angles" which are initially the current joint angles
-            delta_theta, rot_error, trans_error, twist_error_6D = self.inv_kinematics(target_tf, target_joint_angles)
-
-            if rot_error > Thresholds.IK_ERROR_THRESHOLD or trans_error > Thresholds.IK_ERROR_THRESHOLD:
-                for idx, angle_increment in enumerate(delta_theta):
-                    target_joint_angles[idx] += Thresholds.DAMPING_FACTOR * angle_increment.item()
-            else:
-                break
-
-        for joint, motor in self.motors.items():
-            motor.setPosition(target_joint_angles[joint.idx])
-
-        while self.step(self.TIMESTEP) != -1:
-            self.target_reached = True
-            self.update_joint_angles()
-            for current, target in zip(self.joint_angles, target_joint_angles):
-                error = target - current
-                if (abs(error)) > Thresholds.THETA_THRESHOLD:
-                    print(f'Target not reached yet. Error: {error}')
-                    self.target_reached = False
-
-            if self.target_reached:
-                return
 
     def calculate_velocity_step(self, target_twist: np.ndarray):
         """
